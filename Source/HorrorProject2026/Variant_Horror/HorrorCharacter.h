@@ -38,7 +38,10 @@ protected:
 	UInputAction* SprintAction;
 
 	UPROPERTY(EditAnywhere, Category = "Input")
-	UInputAction* ToggleAction;
+	UInputAction* ToggleDamageAction;
+	
+	UPROPERTY(EditAnywhere, Category = "Input")
+	UInputAction* ToggleTorchAction;
 
 	/** If true, we're sprinting */
 	bool bSprinting = false;
@@ -81,32 +84,32 @@ protected:
 	//////////////////////////////
 
 
-	float HealthMeter = 0.0f; 		/** Current Health */
-	float MaxHealth = 100.0f;		/** Max Health */
-	bool bIsHealthTakingDamage = false; 	/** If true, we're taking damage */
-	bool bIsHealthRecovering = false; /** If true, we're recovering health */
-	bool bIsPlayerDead = false; /** If true, we're recovering health */
-	bool bDisableDamage = false; // Temporary disable damage for testing
+	float HealthMeter = 0.0f; 				// Current Health
+	float MaxHealth = 100.0f;				// Max Health
+	bool bIsHealthTakingDamage = false; 	// If true, we're taking damage 
+	bool bIsHealthRecovering = false;		// If true, we're recovering health 
+	bool bIsPlayerDead = false;			    // If true, we're recovering health
+	bool bDisableDamage = false;		    // Temporary disable damage for testing
 
-		/** Time interval for sprinting stamina ticks */
+	/** Time interval for health ticks */
 	UPROPERTY(EditAnywhere, Category = "Health", meta = (ClampMin = 0, ClampMax = 1, Units = "s"))
-	float HealthFixedTickTime = 0.03333f;
+	float HealthFixedTickTime = 0.03333f; //consider changing tick rate later on 
 
-	//Amount of health to recover per second
+
 	UPROPERTY(EditAnywhere, Category = "Recovery", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
-	float HealthRecoveryRate = 10.0f;
+	float HealthRecoveryRate = 10.0f; 	//Amount of health to recover per second
 
 	/** Time after damage before health meter recovery begins  */
 	UPROPERTY(EditAnywhere, Category = "Health")
-	float HealthRecoveryDelay = 2.0f; // seconds after last damage
+	float HealthRecoveryDelay = 2.0f; // seconds after last damage before recovery begins
 
 
 	/** Time after damage before health meter recovery begins  */
 	UPROPERTY(EditAnywhere, Category = "Recovery", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
-	float HealthDamageRate = .2f;
+	float HealthDamageRate = .2f; // Amount of health to lose per second while taking damage
 
 
-	float LastDamageTime = 0.0f;
+	float LastDamageTime = 0.0f; // Time of the last damage tick, used for recovery delay calculations
 
 	/** Health tick timer */
 	FTimerHandle HealthTimer;
@@ -167,4 +170,9 @@ protected:
 
 	/** Called when taking damage at a fixed time interval */
 	void HealthFixedTick();
+
+
+
+	void ToggleTorch();
+
 };

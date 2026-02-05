@@ -65,7 +65,8 @@ void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 			// Sprinting
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHorrorCharacter::DoStartSprint);
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHorrorCharacter::DoEndSprint);
-			EnhancedInputComponent->BindAction(ToggleAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleDamage);
+			EnhancedInputComponent->BindAction(ToggleDamageAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleDamage);
+			EnhancedInputComponent->BindAction(ToggleTorchAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleTorch);
 		}
 	}
 }
@@ -284,5 +285,14 @@ void AHorrorCharacter::ToggleDamage()
 	else
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Damage ENABLED"));
+	}
+}
+
+void AHorrorCharacter::ToggleTorch()
+{
+	if (SpotLight)
+	{
+		bool bIsVisible = SpotLight->IsVisible();
+		SpotLight->SetVisibility(!bIsVisible);
 	}
 }
