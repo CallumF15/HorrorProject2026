@@ -33,6 +33,8 @@ class HORRORPROJECT2026_API AHorrorCharacter : public AHorrorProject2026Characte
 	
 protected:
 
+#pragma region INPUT_ACTIONS 
+
 	/** Fire weapon input action */
 	UPROPERTY(EditAnywhere, Category ="Input")
 	UInputAction* SprintAction;
@@ -43,6 +45,10 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* ToggleTorchAction;
 
+#pragma endregion INPUT_ACTIONS
+
+
+#pragma region SPRINTING
 	/** If true, we're sprinting */
 	bool bSprinting = false;
 
@@ -79,6 +85,11 @@ protected:
 	/** Sprint tick timer */
 	FTimerHandle SprintTimer;
 
+#pragma endregion SPRINTING
+
+
+#pragma region HEALTH
+
 	//////////////////////////////
 	//Health Related
 	//////////////////////////////
@@ -114,6 +125,8 @@ protected:
 	/** Health tick timer */
 	FTimerHandle HealthTimer;
 
+#pragma endregion HEALTH
+
 public:
 
 	/** Delegate called when the sprint meter should be updated */
@@ -132,6 +145,8 @@ protected:
 
 	/** Constructor */
 	AHorrorCharacter();
+
+	//virtual void Tick(float DeltaTime) override; //only needed if we want to do tick-based updates instead of timer-based or debugging
 
 	/** Gameplay initialization */
 	virtual void BeginPlay() override;
@@ -155,6 +170,8 @@ protected:
 	/** Called while sprinting at a fixed time interval */
 	void SprintFixedTick();
 
+protected: 
+
 
 	//Player Health bar reduces based on incoming damage
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
@@ -167,12 +184,12 @@ protected:
 
 	void Die();
 
-
 	/** Called when taking damage at a fixed time interval */
 	void HealthFixedTick();
 
-
-
+protected:
 	void ToggleTorch();
 
+	void HandleJump();
+	void HandleStopJump();
 };

@@ -26,6 +26,8 @@ AHorrorCharacter::AHorrorCharacter()
 	SpotLight->AttenuationRadius = 1050.0f;
 	SpotLight->InnerConeAngle = 18.7f;
 	SpotLight->OuterConeAngle = 45.24f;
+
+
 }
 
 void AHorrorCharacter::BeginPlay()
@@ -65,8 +67,16 @@ void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 			// Sprinting
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHorrorCharacter::DoStartSprint);
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHorrorCharacter::DoEndSprint);
+
+			//Toggle Damage Taken
 			EnhancedInputComponent->BindAction(ToggleDamageAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleDamage);
+
+			// Torch
 			EnhancedInputComponent->BindAction(ToggleTorchAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleTorch);
+
+			// Jump
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AHorrorCharacter::HandleJump);
+			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AHorrorCharacter::HandleStopJump);
 		}
 	}
 }
@@ -122,8 +132,14 @@ void AHorrorCharacter::SprintFixedTick()
 				// raise the recovering flag
 				bRecovering = true;
 
+				bRecovering = true;
+				if (!GetCharacterMovement()->IsFalling())
+				{
+					GetCharacterMovement()->MaxWalkSpeed = RecoveringWalkSpeed;
+				}
+
 				// set the recovering walk speed
-				GetCharacterMovement()->MaxWalkSpeed = RecoveringWalkSpeed;
+				//GetCharacterMovement()->MaxWalkSpeed = RecoveringWalkSpeed;
 			}
 		}
 		
@@ -208,13 +224,13 @@ void AHorrorCharacter::HealthFixedTick() {
 
 
 	//show debug on screen
-	DisplayMessage();
+	//DisplayMessage();
 
-	UE_LOG(LogTemp, Warning, TEXT("bIsHealthTakingDamage: %s"), bIsHealthTakingDamage ? TEXT("True") : TEXT("False"));
+	//UE_LOG(LogTemp, Warning, TEXT("bIsHealthTakingDamage: %s"), bIsHealthTakingDamage ? TEXT("True") : TEXT("False"));
 	if (bIsHealthTakingDamage && bDisableDamage == false)
 	{
 		LastDamageTime = GetWorld()->GetTimeSeconds();
-		UE_LOG(LogTemp, Warning, TEXT("TimeSinceDamage: %f"), LastDamageTime);
+		//UE_LOG(LogTemp, Warning, TEXT("TimeSinceDamage: %f"), LastDamageTime);
 
 		// --- DAMAGE STATE ---
 		bIsHealthRecovering = false;
@@ -231,7 +247,7 @@ void AHorrorCharacter::HealthFixedTick() {
 		// Only start recovering if the "checkpoint" was long enough ago
 		if (TimeSinceDamage >= HealthRecoveryDelay && HealthMeter < MaxHealth)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("It's RECOVERY TIME AHHHH "));
+			//UE_LOG(LogTemp, Warning, TEXT("It's RECOVERY TIME AHHHH "));
 			bIsHealthRecovering = true;
 			HealthMeter = FMath::Min(HealthMeter + (HealthRecoveryRate * HealthFixedTickTime), MaxHealth);
 		}
@@ -287,7 +303,6 @@ void AHorrorCharacter::ToggleDamage()
 		UE_LOG(LogTemp, Warning, TEXT("Damage ENABLED"));
 	}
 }
-
 void AHorrorCharacter::ToggleTorch()
 {
 	if (SpotLight)
@@ -295,4 +310,25 @@ void AHorrorCharacter::ToggleTorch()
 		bool bIsVisible = SpotLight->IsVisible();
 		SpotLight->SetVisibility(!bIsVisible);
 	}
+}
+
+
+void AHorrorCharacter::HandleJump()
+{
+	//UE_LOG(LogTemp, Warning, TEXT("CanJump(): %s"), CanJump() ? TEXT("True") : TEXT("False"));
+	//UE_LOG(LogTemp, Warning, TEXT("IsFalling(): %s"), GetCharacterMovement()->IsFalling() ? TEXT("True") : TEXT("False"));
+	//UE_LOG(LogTemp, Warning, TEXT("JumpZVelocity: %f"), GetCharacterMovement()->JumpZVelocity);
+
+	UE_LOG(LogTemp, Warning, TEXT("JUMPING!"));
+	Jump();
+}
+
+
+void AHorrorCharacter::HandleStopJump()
+{
+	//UE_LOG(LogTemp, Warning, TEXT("CanJump(): %s"), CanJump() ? TEXT("True") : TEXT("False"));
+	//UE_LOG(LogTemp, Warning, TEXT("IsFalling(): %s"), GetCharacterMovement()->IsFalling() ? TEXT("True") : TEXT("False"));
+
+	UE_LOG(LogTemp, Warning, TEXT("STOP JUMP! "));
+	StopJumping();
 }
