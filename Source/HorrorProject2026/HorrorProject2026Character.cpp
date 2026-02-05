@@ -5,6 +5,12 @@
 #include "Camera/CameraComponent.h"
 #include "Components/CapsuleComponent.h"
 #include "Components/SkeletalMeshComponent.h"
+
+
+//network 
+#include "Net/UnrealNetwork.h"
+#include "EngineUtils.h"
+
 #include "EnhancedInputComponent.h"
 #include "InputActionValue.h"
 #include "GameFramework/CharacterMovementComponent.h"
@@ -42,7 +48,56 @@ AHorrorProject2026Character::AHorrorProject2026Character()
 	// Configure character movement
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 	GetCharacterMovement()->AirControl = 0.5f;
+
+	if (bReplicates)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s is set to replicate!"), *GetName());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s is NOT set to replicate!"), *GetName());
+	}
+
 }
+
+void AHorrorProject2026Character::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	static bool bLogged = false;
+	if (!bLogged)
+	{
+		int32 Count = 0;
+		for (TActorIterator<AHorrorProject2026Character> It(GetWorld()); It; ++It)
+		{
+			Count++;
+		}
+
+		if (Count > 1)
+		{
+			bLogged = true;
+			DebugAllPlayers();
+		}
+	}
+}
+
+
+void AHorrorProject2026Character::DebugAllPlayers()
+{
+	for (TActorIterator<AHorrorProject2026Character> It(GetWorld()); It; ++It)
+	{
+		AHorrorProject2026Character* Char = *It;
+		if (Char)
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Found Character: %s, Local: %d, Role: %d"),
+				*Char->GetName(),
+				Char->IsLocallyControlled(),
+				(int32)Char->GetLocalRole()
+			);
+		}
+	}
+}
+
 
 void AHorrorProject2026Character::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {	
@@ -59,6 +114,10 @@ void AHorrorProject2026Character::SetupPlayerInputComponent(UInputComponent* Pla
 		// Looking/Aiming
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AHorrorProject2026Character::LookInput);
 		EnhancedInputComponent->BindAction(MouseLookAction, ETriggerEvent::Triggered, this, &AHorrorProject2026Character::LookInput);
+
+		//jumping
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AHorrorProject2026Character::DoJumpStart);
+		EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AHorrorProject2026Character::DoJumpEnd);
 	}
 	else
 	{
@@ -109,14 +168,23 @@ void AHorrorProject2026Character::DoMove(float Right, float Forward)
 
 void AHorrorProject2026Character::DoJumpStart()
 {
+	//UE_LOG(LogTemp, Warning, TEXT("CanJump(): %s"), CanJump() ? TEXT("True") : TEXT("False"));
+	//UE_LOG(LogTemp, Warning, TEXT("IsFalling(): %s"), GetCharacterMovement()->IsFalling() ? TEXT("True") : TEXT("False"));	
+	//UE_LOG(LogTemp, Warning, TEXT("JumpZVelocity: %f"), GetCharacterMovement()->JumpZVelocity);
+
 	// pass Jump to the character
 	Jump();
 }
 
 void AHorrorProject2026Character::DoJumpEnd()
 {
+	//UE_LOG(LogTemp, Warning, TEXT("CanJump(): %s"), CanJump() ? TEXT("True") : TEXT("False"));
+	//UE_LOG(LogTemp, Warning, TEXT("IsFalling(): %s"), GetCharacterMovement()->IsFalling() ? TEXT("True") : TEXT("False"));
+
 	// pass StopJumping to the character
 	StopJumping();
 }
+
+
 
 

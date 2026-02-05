@@ -41,12 +41,11 @@ protected:
 
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* ToggleDamageAction;
-	
+
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* ToggleTorchAction;
 
 #pragma endregion INPUT_ACTIONS
-
 
 #pragma region SPRINTING
 	/** If true, we're sprinting */
@@ -94,9 +93,11 @@ protected:
 	//Health Related
 	//////////////////////////////
 
-
+	UPROPERTY(ReplicatedUsing = OnRep_HealthMeter) //adding multiplayer code for health replication
 	float HealthMeter = 0.0f; 				// Current Health
-	float MaxHealth = 100.0f;				// Max Health
+
+	UPROPERTY(EditDefaultsOnly, Category = "Health") 
+	float MaxHealth = 100.0f;			 	// Max Health
 	bool bIsHealthTakingDamage = false; 	// If true, we're taking damage 
 	bool bIsHealthRecovering = false;		// If true, we're recovering health 
 	bool bIsPlayerDead = false;			    // If true, we're recovering health
@@ -125,7 +126,28 @@ protected:
 	/** Health tick timer */
 	FTimerHandle HealthTimer;
 
+	UFUNCTION()
+	void OnRep_HealthMeter();
+
+	void DebugDrawHealth();
+
 #pragma endregion HEALTH
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+
+
+	UPROPERTY(ReplicatedUsing = OnRep_TorchState)
+	bool bTorchOn;
+
+	/** Called when bTorchOn changes on clients */
+	UFUNCTION()
+	void OnRep_TorchState();
+
+	/** Server RPC to toggle torch on authoritative server */
+	UFUNCTION(Server, Reliable)
+	void ServerToggleTorch();
+	void ServerToggleTorch_Implementation();
+
 
 public:
 
@@ -190,6 +212,4 @@ protected:
 protected:
 	void ToggleTorch();
 
-	void HandleJump();
-	void HandleStopJump();
 };

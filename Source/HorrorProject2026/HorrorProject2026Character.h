@@ -80,6 +80,8 @@ protected:
 
 	/** Set up input action bindings */
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
+
+	void Tick(float DeltaTime);
 	
 
 public:
@@ -90,5 +92,6 @@ public:
 	/** Returns first person camera component **/
 	UCameraComponent* GetFirstPersonCameraComponent() const { return FirstPersonCameraComponent; }
 
+	void DebugAllPlayers();
 };
 

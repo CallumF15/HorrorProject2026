@@ -8,6 +8,10 @@
 #include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
 #include "Components/SpotLightComponent.h"
+
+//network
+#include "Net/UnrealNetwork.h"
+
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
 #include "GameFramework/DamageType.h"
@@ -26,8 +30,6 @@ AHorrorCharacter::AHorrorCharacter()
 	SpotLight->AttenuationRadius = 1050.0f;
 	SpotLight->InnerConeAngle = 18.7f;
 	SpotLight->OuterConeAngle = 45.24f;
-
-
 }
 
 void AHorrorCharacter::BeginPlay()
@@ -71,15 +73,37 @@ void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 			//Toggle Damage Taken
 			EnhancedInputComponent->BindAction(ToggleDamageAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleDamage);
 
-			// Torch
+			//toggle torch
 			EnhancedInputComponent->BindAction(ToggleTorchAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleTorch);
-
-			// Jump
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &AHorrorCharacter::HandleJump);
-			EnhancedInputComponent->BindAction(JumpAction, ETriggerEvent::Completed, this, &AHorrorCharacter::HandleStopJump);
 		}
 	}
 }
+
+
+
+void AHorrorCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+{
+	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
+
+	DOREPLIFETIME(AHorrorCharacter, HealthMeter);
+	DOREPLIFETIME(AHorrorCharacter, bTorchOn);
+}
+
+void AHorrorCharacter::OnRep_HealthMeter()
+{
+	if (!IsLocallyControlled())
+	{
+		// Only non-owners accept server correction
+		// Owners trust local simulation
+	}
+
+	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
+	DebugDrawHealth();
+}
+
+#pragma region OtherMethods
+
+	#pragma region Sprinting
 
 void AHorrorCharacter::DoStartSprint()
 {
@@ -95,7 +119,6 @@ void AHorrorCharacter::DoStartSprint()
 		// call the sprint state changed delegate
 		OnSprintStateChanged.Broadcast(true);
 	}
-
 }
 
 void AHorrorCharacter::DoEndSprint()
@@ -166,6 +189,10 @@ void AHorrorCharacter::SprintFixedTick()
 	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
 
 }
+
+	#pragma endregion
+
+	#pragma region Health
 
 float AHorrorCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
@@ -258,19 +285,32 @@ void AHorrorCharacter::HealthFixedTick() {
 		}
 	}
 
-	// Optional: Adjust walk speed based on state
-	//if (bIsHealthRecovering)
-	//{
-	//	GetCharacterMovement()->MaxWalkSpeed = RecoveringWalkSpeed;
-	//}
-	//else
-	//{
-	//	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-	//}
-
 	// broadcast UI update
 	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
+	DebugDrawHealth();
 }
+
+void AHorrorCharacter::DebugDrawHealth()
+{
+	if (!GetWorld()) return;
+
+	const FString Text = FString::Printf(
+		TEXT("Health: %.1f"),
+		HealthMeter
+	);
+
+	DrawDebugString(
+		GetWorld(),
+		FVector(0, 0, 100.f),
+		Text,
+		this,
+		FColor::Green,
+		0.f,   // 0 = every frame
+		true   // draw on top
+	);
+}
+
+	#pragma endregion
 
 void AHorrorCharacter::DisplayMessage() {
 
@@ -303,32 +343,41 @@ void AHorrorCharacter::ToggleDamage()
 		UE_LOG(LogTemp, Warning, TEXT("Damage ENABLED"));
 	}
 }
+
+
 void AHorrorCharacter::ToggleTorch()
+{
+	if (HasAuthority())
+	{
+		// If this is the server (e.g., Listen Server), toggle directly
+		bTorchOn = !bTorchOn;
+		OnRep_TorchState();
+	}
+	else
+	{
+		// If this is a client, send request to the server
+		ServerToggleTorch();
+	}
+
+	//if (SpotLight)
+	//{
+	//	bool bIsVisible = SpotLight->IsVisible();
+	//	SpotLight->SetVisibility(!bIsVisible);
+	//}
+}
+
+void AHorrorCharacter::OnRep_TorchState()
 {
 	if (SpotLight)
 	{
-		bool bIsVisible = SpotLight->IsVisible();
-		SpotLight->SetVisibility(!bIsVisible);
+		SpotLight->SetVisibility(bTorchOn);
 	}
 }
 
-
-void AHorrorCharacter::HandleJump()
+void AHorrorCharacter::ServerToggleTorch_Implementation()
 {
-	//UE_LOG(LogTemp, Warning, TEXT("CanJump(): %s"), CanJump() ? TEXT("True") : TEXT("False"));
-	//UE_LOG(LogTemp, Warning, TEXT("IsFalling(): %s"), GetCharacterMovement()->IsFalling() ? TEXT("True") : TEXT("False"));
-	//UE_LOG(LogTemp, Warning, TEXT("JumpZVelocity: %f"), GetCharacterMovement()->JumpZVelocity);
-
-	UE_LOG(LogTemp, Warning, TEXT("JUMPING!"));
-	Jump();
+	bTorchOn = !bTorchOn;
+	OnRep_TorchState(); // update locally on server
 }
 
-
-void AHorrorCharacter::HandleStopJump()
-{
-	//UE_LOG(LogTemp, Warning, TEXT("CanJump(): %s"), CanJump() ? TEXT("True") : TEXT("False"));
-	//UE_LOG(LogTemp, Warning, TEXT("IsFalling(): %s"), GetCharacterMovement()->IsFalling() ? TEXT("True") : TEXT("False"));
-
-	UE_LOG(LogTemp, Warning, TEXT("STOP JUMP! "));
-	StopJumping();
-}
+#pragma endregion
