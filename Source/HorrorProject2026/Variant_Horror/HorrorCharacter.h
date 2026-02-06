@@ -62,7 +62,7 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Sprint", meta = (ClampMin = 0, ClampMax = 1, Units = "s"))
 	float SprintFixedTickTime = 0.03333f;
 
-	//UPROPERTY(ReplicatedUsing = OnRep_SprintMeter) //adding multiplayer code for health replication
+	UPROPERTY(ReplicatedUsing = OnRep_SprintMeter) //adding multiplayer code for health replication
 	float SprintMeter = 0.0f; 	/** Sprint stamina amount. Maxes at SprintTime */
 
 	/** How long we can sprint for, in seconds */
@@ -85,19 +85,22 @@ protected:
 	FTimerHandle SprintTimer;
 
 
-	//UFUNCTION()
-	//void OnRep_SprintMeter();
+	UFUNCTION()
+	void OnRep_SprintMeter();
 
+	UFUNCTION(Server, Reliable)
+	void ServerStartSprint();
+	void ServerStartSprint_Implementation();
+
+	UFUNCTION(Server, Reliable)
+	void ServerStopSprint();
+	void ServerStopSprint_Implementation();
 
 
 #pragma endregion SPRINTING
 
 
 #pragma region HEALTH
-
-	//////////////////////////////
-	//Health Related
-	//////////////////////////////
 
 	UPROPERTY(ReplicatedUsing = OnRep_HealthMeter) //adding multiplayer code for health replication
 	float HealthMeter = 0.0f; 				// Current Health
@@ -150,7 +153,7 @@ protected:
 
 	/** Server RPC to toggle torch on authoritative server */
 	UFUNCTION(Server, Reliable)
-	void ServerToggleTorch();
+	void ServerToggleTorch(); 
 	void ServerToggleTorch_Implementation();
 
 public:

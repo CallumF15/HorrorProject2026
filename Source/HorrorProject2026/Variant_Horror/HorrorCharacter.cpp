@@ -79,13 +79,14 @@ void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	}
 }
 
-
+#pragma region NETWORKING
 
 void AHorrorCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AHorrorCharacter, HealthMeter);
+	DOREPLIFETIME(AHorrorCharacter, SprintMeter);
 	DOREPLIFETIME(AHorrorCharacter, bTorchOn);
 	DOREPLIFETIME(AHorrorCharacter, bDisableDamage);
 }
@@ -103,6 +104,31 @@ void AHorrorCharacter::OnRep_HealthMeter()
 	// Draw Health above character in cyan
 	DebugDrawStats(TEXT("Health"), HealthMeter, FVector(0, 0, 100.f), FColor::Red);
 }
+void AHorrorCharacter::OnRep_SprintMeter()
+{
+	if (!IsLocallyControlled())
+	{
+		// Only non-owners accept server correction
+		// Owners trust local simulation
+	}
+	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
+	// Draw Sprint Meter above character in green
+	DebugDrawStats(TEXT("Sprint"), SprintMeter, FVector(0, 0, 120.f), FColor::Green);
+}
+
+void  AHorrorCharacter::ServerStartSprint_Implementation()
+{
+	bSprinting = true;
+	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+}
+
+void  AHorrorCharacter::ServerStopSprint_Implementation()
+{
+	bSprinting = false;
+	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+}
+
+#pragma endregion
 
 #pragma region OtherMethods
 
@@ -110,36 +136,48 @@ void AHorrorCharacter::OnRep_HealthMeter()
 
 void AHorrorCharacter::DoStartSprint()
 {
-	// set the sprinting flag
-	bSprinting = true;
+	if (HasAuthority()) {
+		// set the sprinting flag
+		bSprinting = true;
 
-	// are we out of recovery mode?
-	if (!bRecovering)
-	{
-		// set the sprint walk speed
-		GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
+		// are we out of recovery mode?
+		if (!bRecovering)
+		{
+			// set the sprint walk speed
+			GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 
-		// call the sprint state changed delegate
-		OnSprintStateChanged.Broadcast(true);
-	}
+			// call the sprint state changed delegate
+			OnSprintStateChanged.Broadcast(true);
+		}
+		else {
+			// if we're not the server, call the server function to start sprinting
+			ServerStartSprint();
+		}
+	}else
+		ServerStartSprint();
 }
 
 void AHorrorCharacter::DoEndSprint()
 {
-	// set the sprinting flag
-	bSprinting = false;
-
-	// are we out of recovery mode?
-	if (!bRecovering)
+	if (HasAuthority()) 
 	{
-		// set the default walk speed
-		GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
+		// set the sprinting flag
+		bSprinting = false;
 
-		// call the sprint state changed delegate
-		OnSprintStateChanged.Broadcast(false);
+		// are we out of recovery mode?
+		if (!bRecovering)
+		{
+			// set the default walk speed
+			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
-		//DebugDrawStats(TEXT("Health"), SprintMeter, FVector(0, 0, 100.f), FColor::Green);
+			// call the sprint state changed delegate
+			OnSprintStateChanged.Broadcast(false);
+
+			//DebugDrawStats(TEXT("Health"), SprintMeter, FVector(0, 0, 100.f), FColor::Green);
+		}
 	}
+	else
+		ServerStopSprint();
 }
 
 void AHorrorCharacter::SprintFixedTick()
@@ -192,6 +230,7 @@ void AHorrorCharacter::SprintFixedTick()
 
 	// broadcast the sprint meter updated delegate
 	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
+	DebugDrawStats(TEXT("Sprint"), SprintMeter, FVector(0, 0, 120.f), FColor::Green);
 
 }
 
