@@ -87,6 +87,7 @@ void AHorrorCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 	DOREPLIFETIME(AHorrorCharacter, HealthMeter);
 	DOREPLIFETIME(AHorrorCharacter, bTorchOn);
+	DOREPLIFETIME(AHorrorCharacter, bDisableDamage);
 }
 
 void AHorrorCharacter::OnRep_HealthMeter()
@@ -98,7 +99,9 @@ void AHorrorCharacter::OnRep_HealthMeter()
 	}
 
 	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
-	DebugDrawHealth();
+
+	// Draw Health above character in cyan
+	DebugDrawStats(TEXT("Health"), HealthMeter, FVector(0, 0, 100.f), FColor::Red);
 }
 
 #pragma region OtherMethods
@@ -134,6 +137,8 @@ void AHorrorCharacter::DoEndSprint()
 
 		// call the sprint state changed delegate
 		OnSprintStateChanged.Broadcast(false);
+
+		//DebugDrawStats(TEXT("Health"), SprintMeter, FVector(0, 0, 100.f), FColor::Green);
 	}
 }
 
@@ -287,24 +292,26 @@ void AHorrorCharacter::HealthFixedTick() {
 
 	// broadcast UI update
 	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
-	DebugDrawHealth();
+	// Draw Health above character in cyan
+	DebugDrawStats(TEXT("Health"), HealthMeter, FVector(0, 0, 100.f), FColor::Red);
 }
 
-void AHorrorCharacter::DebugDrawHealth()
+/// <summary>
+/// Displays a debug string above the character with the given label and value, offset by the specified amount. Useful for visualizing stats like health or stamina during development.
+/// </summary>
+void AHorrorCharacter::DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color)
 {
 	if (!GetWorld()) return;
 
-	const FString Text = FString::Printf(
-		TEXT("Health: %.1f"),
-		HealthMeter
-	);
+	// Combine the label and value into a string
+	const FString Text = FString::Printf(TEXT("%s: %.1f"), *Label, Value);
 
 	DrawDebugString(
 		GetWorld(),
-		FVector(0, 0, 100.f),
+		Offset,
 		Text,
 		this,
-		FColor::Green,
+		Color,
 		0.f,   // 0 = every frame
 		true   // draw on top
 	);
@@ -332,18 +339,28 @@ void AHorrorCharacter::DisplayMessage() {
 
 void AHorrorCharacter::ToggleDamage()
 {
-	bDisableDamage = !bDisableDamage;
-	
-	if (bDisableDamage)
+	if(HasAuthority())
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Damage DISABLED - Recovery can take place"));
+		// If this is the server (e.g., Listen Server), toggle directly
+		bDisableDamage = !bDisableDamage;
 	}
 	else
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Damage ENABLED"));
+		// If this is a client, send request to the server
+		Server_SetDamageDisabled(!bDisableDamage);
 	}
-}
 
+	bDisableDamage = !bDisableDamage;
+	
+	//if (bDisableDamage)
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("Damage DISABLED - Recovery can take place"));
+	//}
+	//else
+	//{
+	//	UE_LOG(LogTemp, Warning, TEXT("Damage ENABLED"));
+	//}
+}
 
 void AHorrorCharacter::ToggleTorch()
 {
@@ -358,12 +375,6 @@ void AHorrorCharacter::ToggleTorch()
 		// If this is a client, send request to the server
 		ServerToggleTorch();
 	}
-
-	//if (SpotLight)
-	//{
-	//	bool bIsVisible = SpotLight->IsVisible();
-	//	SpotLight->SetVisibility(!bIsVisible);
-	//}
 }
 
 void AHorrorCharacter::OnRep_TorchState()
@@ -381,3 +392,8 @@ void AHorrorCharacter::ServerToggleTorch_Implementation()
 }
 
 #pragma endregion
+
+void AHorrorCharacter::Server_SetDamageDisabled_Implementation(bool bDisabled)
+{
+	bDisableDamage = bDisabled;
+}

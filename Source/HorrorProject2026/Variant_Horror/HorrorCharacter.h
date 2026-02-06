@@ -62,8 +62,8 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Sprint", meta = (ClampMin = 0, ClampMax = 1, Units = "s"))
 	float SprintFixedTickTime = 0.03333f;
 
-	/** Sprint stamina amount. Maxes at SprintTime */
-	float SprintMeter = 0.0f;
+	//UPROPERTY(ReplicatedUsing = OnRep_SprintMeter) //adding multiplayer code for health replication
+	float SprintMeter = 0.0f; 	/** Sprint stamina amount. Maxes at SprintTime */
 
 	/** How long we can sprint for, in seconds */
 	UPROPERTY(EditAnywhere, Category="Sprint", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
@@ -84,6 +84,12 @@ protected:
 	/** Sprint tick timer */
 	FTimerHandle SprintTimer;
 
+
+	//UFUNCTION()
+	//void OnRep_SprintMeter();
+
+
+
 #pragma endregion SPRINTING
 
 
@@ -101,7 +107,8 @@ protected:
 	bool bIsHealthTakingDamage = false; 	// If true, we're taking damage 
 	bool bIsHealthRecovering = false;		// If true, we're recovering health 
 	bool bIsPlayerDead = false;			    // If true, we're recovering health
-	bool bDisableDamage = false;		    // Temporary disable damage for testing
+
+
 
 	/** Time interval for health ticks */
 	UPROPERTY(EditAnywhere, Category = "Health", meta = (ClampMin = 0, ClampMax = 1, Units = "s"))
@@ -129,12 +136,10 @@ protected:
 	UFUNCTION()
 	void OnRep_HealthMeter();
 
-	void DebugDrawHealth();
 
 #pragma endregion HEALTH
 
-	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
+	void DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color);
 
 	UPROPERTY(ReplicatedUsing = OnRep_TorchState)
 	bool bTorchOn;
@@ -147,7 +152,6 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerToggleTorch();
 	void ServerToggleTorch_Implementation();
-
 
 public:
 
@@ -165,6 +169,8 @@ public:
 
 protected:
 
+	//Main functions go here
+
 	/** Constructor */
 	AHorrorCharacter();
 
@@ -178,6 +184,8 @@ protected:
 
 	/** Set up input action bindings */
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
+
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 protected:
 
@@ -209,7 +217,17 @@ protected:
 	/** Called when taking damage at a fixed time interval */
 	void HealthFixedTick();
 
+
+	UPROPERTY(Replicated)
+	bool bDisableDamage = false; // Temporary disable damage for testing
+
+	UFUNCTION(Server, Reliable)
+	void Server_SetDamageDisabled(bool bDisabled);
+
 protected:
+
 	void ToggleTorch();
+
+	
 
 };

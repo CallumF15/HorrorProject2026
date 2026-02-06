@@ -48,16 +48,6 @@ AHorrorProject2026Character::AHorrorProject2026Character()
 	// Configure character movement
 	GetCharacterMovement()->BrakingDecelerationFalling = 1500.0f;
 	GetCharacterMovement()->AirControl = 0.5f;
-
-	if (bReplicates)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s is set to replicate!"), *GetName());
-	}
-	else
-	{
-		UE_LOG(LogTemp, Warning, TEXT("%s is NOT set to replicate!"), *GetName());
-	}
-
 }
 
 void AHorrorProject2026Character::Tick(float DeltaTime)
