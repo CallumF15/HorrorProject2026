@@ -6,6 +6,10 @@
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
 #include "HorrorProject2026CameraManager.h"
+
+//network 
+#include "Net/UnrealNetwork.h"
+
 #include "HorrorCharacter.h"
 #include "HorrorUI.h"
 #include "HorrorProject2026.h"
@@ -37,7 +41,23 @@ void AHorrorPlayerController::BeginPlay()
 			UE_LOG(LogHorrorProject2026, Error, TEXT("Could not spawn mobile controls widget."));
 
 		}
+	}
 
+	if (!IsLocalPlayerController()) return;
+
+	if (!HorrorUI && HorrorUIClass)
+	{
+		HorrorUI = CreateWidget<UHorrorUI>(this, HorrorUIClass);
+		HorrorUI->AddToViewport(0);
+
+
+		if (APawn* MyPawn = GetPawn())
+		{
+			if (AHorrorCharacter* HorrorChar = Cast<AHorrorCharacter>(MyPawn))
+			{
+				HorrorUI->SetupCharacter(HorrorChar);
+			}
+		}
 	}
 }
 
@@ -45,24 +65,57 @@ void AHorrorPlayerController::OnPossess(APawn* aPawn)
 {
 	Super::OnPossess(aPawn);
 
-	// only spawn UI on local player controllers
-	if (IsLocalPlayerController())
-	{
-		// set up the UI for the character
-		if (AHorrorCharacter* HorrorCharacter = Cast<AHorrorCharacter>(aPawn))
-		{
-			// create the UI
-			if (!HorrorUI)
-			{
-				HorrorUI = CreateWidget<UHorrorUI>(this, HorrorUIClass);
-				HorrorUI->AddToViewport(0);
-			}
+	if (!IsLocalPlayerController() || !HorrorUI) return;
 
-			HorrorUI->SetupCharacter(HorrorCharacter);
-		}
+	if (AHorrorCharacter* HorrorCharacter = Cast<AHorrorCharacter>(aPawn))
+	{
+		HorrorUI->SetupCharacter(HorrorCharacter);
+		UE_LOG(LogHorrorProject2026, Warning, TEXT("HorrorUI SetupCharacter called"));
 	}
-	
 }
+
+
+//void AHorrorPlayerController::OnPossess(APawn* aPawn)
+//{
+//	Super::OnPossess(aPawn);
+//
+//	UE_LOG(LogHorrorProject2026, Warning, TEXT("PlayerController OnPossess: %s, IsLocalPlayerController: %d"),
+//		*GetNameSafe(aPawn), IsLocalPlayerController());
+//
+//
+//	// only spawn UI on local player controllers
+//	if (IsLocalPlayerController())
+//	{
+//		// set up the UI for the character
+//		if (AHorrorCharacter* HorrorCharacter = Cast<AHorrorCharacter>(aPawn))
+//		{
+//			// create the UI if it doesn't exist
+//			if (!HorrorUI)
+//			{
+//				HorrorUI = CreateWidget<UHorrorUI>(this, HorrorUIClass);
+//			
+//
+//				ULocalPlayer* LP = GetLocalPlayer();
+//
+//				UE_LOG(LogHorrorProject2026, Warning,
+//					TEXT("UI DEBUG | IsLocal=%d LocalPlayer=%s ViewportClient=%s"),
+//					IsLocalPlayerController(),
+//					LP ? TEXT("YES") : TEXT("NO"),
+//					(LP && LP->ViewportClient) ? TEXT("YES") : TEXT("NO")
+//				);
+//
+//				if (HorrorUI) {
+//					UE_LOG(LogHorrorProject2026, Warning, TEXT("HorrorUI created and added to viewport!"));
+//					HorrorUI->AddToViewport(0);
+//				}
+//				else
+//					UE_LOG(LogHorrorProject2026, Error, TEXT("HorrorUI failed to create!"));
+//			}
+//
+//			HorrorUI->SetupCharacter(HorrorCharacter);
+//		}
+//	}
+//}
 
 void AHorrorPlayerController::SetupInputComponent()
 {

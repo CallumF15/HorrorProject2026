@@ -91,6 +91,7 @@ void AHorrorCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(AHorrorCharacter, bDisableDamage);
 }
 
+//Health
 void AHorrorCharacter::OnRep_HealthMeter()
 {
 	if (!IsLocallyControlled())
@@ -98,12 +99,15 @@ void AHorrorCharacter::OnRep_HealthMeter()
 		// Only non-owners accept server correction
 		// Owners trust local simulation
 	}
-
+		
 	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
+
 
 	// Draw Health above character in cyan
 	DebugDrawStats(TEXT("Health"), HealthMeter, FVector(0, 0, 100.f), FColor::Red);
 }
+
+//Sprinting
 void AHorrorCharacter::OnRep_SprintMeter()
 {
 	if (!IsLocallyControlled())
@@ -111,6 +115,7 @@ void AHorrorCharacter::OnRep_SprintMeter()
 		// Only non-owners accept server correction
 		// Owners trust local simulation
 	}
+		
 	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
 	// Draw Sprint Meter above character in green
 	DebugDrawStats(TEXT("Sprint"), SprintMeter, FVector(0, 0, 120.f), FColor::Green);
@@ -121,7 +126,6 @@ void  AHorrorCharacter::ServerStartSprint_Implementation()
 	bSprinting = true;
 	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
 }
-
 void  AHorrorCharacter::ServerStopSprint_Implementation()
 {
 	bSprinting = false;
@@ -389,8 +393,8 @@ void AHorrorCharacter::ToggleDamage()
 		Server_SetDamageDisabled(!bDisableDamage);
 	}
 
-	bDisableDamage = !bDisableDamage;
-	
+	//bDisableDamage = !bDisableDamage;
+	//
 	//if (bDisableDamage)
 	//{
 	//	UE_LOG(LogTemp, Warning, TEXT("Damage DISABLED - Recovery can take place"));
@@ -400,6 +404,7 @@ void AHorrorCharacter::ToggleDamage()
 	//	UE_LOG(LogTemp, Warning, TEXT("Damage ENABLED"));
 	//}
 }
+
 
 void AHorrorCharacter::ToggleTorch()
 {
@@ -430,9 +435,10 @@ void AHorrorCharacter::ServerToggleTorch_Implementation()
 	OnRep_TorchState(); // update locally on server
 }
 
-#pragma endregion
-
 void AHorrorCharacter::Server_SetDamageDisabled_Implementation(bool bDisabled)
 {
 	bDisableDamage = bDisabled;
 }
+
+#pragma endregion
+

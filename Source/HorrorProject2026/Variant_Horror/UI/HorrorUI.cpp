@@ -10,6 +10,7 @@ void UHorrorUI::SetupCharacter(AHorrorCharacter* HorrorCharacter)
 	HorrorCharacter->OnSprintStateChanged.AddDynamic(this, &UHorrorUI::OnSprintStateChanged);
 	HorrorCharacter->OnHealthMeterUpdated.AddDynamic(this, &UHorrorUI::OnHealthMeterUpdated);
 	HorrorCharacter->OnHealthStateChanged.AddDynamic(this, &UHorrorUI::OnHealthStateChanged);
+
 }
 
 void UHorrorUI::OnSprintMeterUpdated(float Percent)
@@ -23,7 +24,6 @@ void UHorrorUI::OnSprintStateChanged(bool bSprinting)
 	// call the BP handler
 	BP_SprintStateChanged(bSprinting);
 }
-
 
 void UHorrorUI::OnHealthMeterUpdated(float Percent)
 {

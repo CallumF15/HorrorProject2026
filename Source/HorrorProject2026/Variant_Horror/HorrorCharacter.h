@@ -7,20 +7,18 @@
 #include "HorrorCharacter.generated.h"
 
 
-
 class USpotLightComponent;
 class UInputAction;
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUpdateSprintMeterDelegate, float, Percentage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSprintStateChangedDelegate, bool, bSprinting);
 
-
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUpdateHealthMeterDelegate, float, Percentage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealthStateChangedDelegate, bool, bTakenHealthDamage);
 
 /**
  *  Simple first person horror character
- *  Provides stamina-based sprinting
+ *  Provides stamina-based sprinting and Health Damage
  */
 UCLASS(abstract)
 class HORRORPROJECT2026_API AHorrorCharacter : public AHorrorProject2026Character
@@ -230,7 +228,5 @@ protected:
 protected:
 
 	void ToggleTorch();
-
-	
 
 };
