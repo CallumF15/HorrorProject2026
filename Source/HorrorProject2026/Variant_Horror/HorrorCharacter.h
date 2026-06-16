@@ -46,11 +46,19 @@ protected:
 #pragma endregion INPUT_ACTIONS
 
 #pragma region SPRINTING
+	
 	/** If true, we're sprinting */
 	bool bSprinting = false;
 
+	bool bWantstoSprint;
+
 	/** If true, we're recovering stamina */
 	bool bRecovering = false;
+
+	/** Is the sprint button down? */
+	bool bSprintButtonHeld = false;
+
+	bool bHasStamina;
 
 	/** Default walk speed when not sprinting or recovering */
 	UPROPERTY(EditAnywhere, Category="Walk")
@@ -58,9 +66,9 @@ protected:
 
 	/** Time interval for sprinting stamina ticks */
 	UPROPERTY(EditAnywhere, Category="Sprint", meta = (ClampMin = 0, ClampMax = 1, Units = "s"))
-	float SprintFixedTickTime = 0.03333f;
+	float SprintFixedTickTime = 0.03333f; // 30 hz or approximately 30 updates per second
 
-	UPROPERTY(ReplicatedUsing = OnRep_SprintMeter) //adding multiplayer code for health replication
+	UPROPERTY(ReplicatedUsing = OnRep_SprintMeter) 
 	float SprintMeter = 0.0f; 	/** Sprint stamina amount. Maxes at SprintTime */
 
 	/** How long we can sprint for, in seconds */
@@ -78,11 +86,14 @@ protected:
 	/** Time it takes for the sprint meter to recover */
 	UPROPERTY(EditAnywhere, Category="Recovery", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
 	float RecoveryTime = 0.0f;
+	
+
 
 	/** Sprint tick timer */
 	FTimerHandle SprintTimer;
 
-
+	//Methods
+	
 	UFUNCTION()
 	void OnRep_SprintMeter();
 
@@ -93,7 +104,6 @@ protected:
 	UFUNCTION(Server, Reliable)
 	void ServerStopSprint();
 	void ServerStopSprint_Implementation();
-
 
 #pragma endregion SPRINTING
 

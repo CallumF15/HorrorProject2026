@@ -1,4 +1,4 @@
-// Copyright Epic Games, Inc. All Rights Reserved.
+﻿// Copyright Epic Games, Inc. All Rights Reserved.
 
 
 
@@ -86,7 +86,8 @@ void AHorrorCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	DOREPLIFETIME(AHorrorCharacter, HealthMeter);
-	DOREPLIFETIME(AHorrorCharacter, SprintMeter);
+	//DOREPLIFETIME(AHorrorCharacter, SprintMeter);
+	DOREPLIFETIME_CONDITION(AHorrorCharacter, SprintMeter, COND_OwnerOnly); //(check this) we may want to replicate sprint meter to everyone for UI purposes, but only the owner needs to know the exact value for gameplay purposes
 	DOREPLIFETIME(AHorrorCharacter, bTorchOn);
 	DOREPLIFETIME(AHorrorCharacter, bDisableDamage);
 }
@@ -101,36 +102,12 @@ void AHorrorCharacter::OnRep_HealthMeter()
 	}
 		
 	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
-
-
+	
 	// Draw Health above character in cyan
 	DebugDrawStats(TEXT("Health"), HealthMeter, FVector(0, 0, 100.f), FColor::Red);
 }
 
-//Sprinting
-void AHorrorCharacter::OnRep_SprintMeter()
-{
-	if (!IsLocallyControlled())
-	{
-		// Only non-owners accept server correction
-		// Owners trust local simulation
-	}
-		
-	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
-	// Draw Sprint Meter above character in green
-	DebugDrawStats(TEXT("Sprint"), SprintMeter, FVector(0, 0, 120.f), FColor::Green);
-}
 
-void  AHorrorCharacter::ServerStartSprint_Implementation()
-{
-	bSprinting = true;
-	GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
-}
-void  AHorrorCharacter::ServerStopSprint_Implementation()
-{
-	bSprinting = false;
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-}
 
 #pragma endregion
 
@@ -140,102 +117,86 @@ void  AHorrorCharacter::ServerStopSprint_Implementation()
 
 void AHorrorCharacter::DoStartSprint()
 {
-	if (HasAuthority()) {
-		// set the sprinting flag
-		bSprinting = true;
+	bSprintButtonHeld = true;
 
-		// are we out of recovery mode?
-		if (!bRecovering)
-		{
-			// set the sprint walk speed
-			GetCharacterMovement()->MaxWalkSpeed = SprintSpeed;
-
-			// call the sprint state changed delegate
-			OnSprintStateChanged.Broadcast(true);
-		}
-		else {
-			// if we're not the server, call the server function to start sprinting
-			ServerStartSprint();
-		}
-	}else
+	if (!HasAuthority())
+	{
 		ServerStartSprint();
+	}
 }
 
 void AHorrorCharacter::DoEndSprint()
 {
-	if (HasAuthority()) 
+	bSprintButtonHeld = false;
+
+	if (!HasAuthority())
 	{
-		// set the sprinting flag
-		bSprinting = false;
-
-		// are we out of recovery mode?
-		if (!bRecovering)
-		{
-			// set the default walk speed
-			GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-
-			// call the sprint state changed delegate
-			OnSprintStateChanged.Broadcast(false);
-
-			//DebugDrawStats(TEXT("Health"), SprintMeter, FVector(0, 0, 100.f), FColor::Green);
-		}
-	}
-	else
 		ServerStopSprint();
+	}
 }
 
 void AHorrorCharacter::SprintFixedTick()
 {
-	// are we out of recovery, still have stamina and are moving faster than our walk speed?
-	if (bSprinting && !bRecovering && GetVelocity().Length() > WalkSpeed)
+	if (bSprinting)
 	{
-
-		// do we still have meter to burn?
-		if (SprintMeter > 0.0f)
-		{
-			// update the sprint meter
-			SprintMeter = FMath::Max(SprintMeter - SprintFixedTickTime, 0.0f);
-
-			// have we run out of stamina?
-			if (SprintMeter <= 0.0f)
-			{
-				// raise the recovering flag
-				bRecovering = true;
-
-				bRecovering = true;
-				if (!GetCharacterMovement()->IsFalling())
-				{
-					GetCharacterMovement()->MaxWalkSpeed = RecoveringWalkSpeed;
-				}
-
-				// set the recovering walk speed
-				//GetCharacterMovement()->MaxWalkSpeed = RecoveringWalkSpeed;
-			}
-		}
-		
-	} else {
-
-		// recover stamina
-		SprintMeter = FMath::Min(SprintMeter + SprintFixedTickTime, SprintTime);
-
-		if (SprintMeter >= SprintTime)
-		{
-			// lower the recovering flag
-			bRecovering = false;
-
-			// set the walk or sprint speed depending on whether the sprint button is down
-			GetCharacterMovement()->MaxWalkSpeed = bSprinting ? SprintSpeed : WalkSpeed;
-
-			// update the sprint state depending on whether the button is down or not
-			OnSprintStateChanged.Broadcast(bSprinting);
-		}
-
+		SprintMeter -= SprintFixedTickTime;
+		//SprintMeter -= SprintDrainRate * SprintFixedTickTime;
+	}
+	else
+	{
+		SprintMeter += SprintFixedTickTime; //recover stamima
+		//SprintMeter += SprintRegenRate * SprintFixedTickTime; // can expand and add Regen 
 	}
 
-	// broadcast the sprint meter updated delegate
-	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
-	DebugDrawStats(TEXT("Sprint"), SprintMeter, FVector(0, 0, 120.f), FColor::Green);
+	SprintMeter = FMath::Min(SprintMeter, SprintTime); //if sprintTime exceeds SprintMeter we clamp it
+	
+	bHasStamina = SprintMeter > 0.f;
+	bool NewSprintingState = bSprintButtonHeld && bHasStamina;
+	
+	// Only react if state changes
+	if (NewSprintingState != bSprinting)
+	{
+		bSprinting = NewSprintingState;
+		OnSprintStateChanged.Broadcast(bSprinting);
+	}
+	
+	const float TargetSpeed = bSprinting ? SprintSpeed : WalkSpeed;
+	GetCharacterMovement()->MaxWalkSpeed = TargetSpeed;
+	// GetCharacterMovement()->MaxWalkSpeed = FMath::FInterpTo(GetCharacterMovement()->MaxWalkSpeed, TargetSpeed, SprintFixedTickTime, 12.f); //only if we want to gradually change between speed
 
+	bRecovering = (!bSprinting && SprintMeter < SprintTime);
+
+	UE_LOG(LogTemp, 
+		Log, TEXT("SprintStates: bSprinting=%s, bSprintButtonHeld=%s, bRecovering=%s, SprintMeter=%.2f"),
+		bSprinting ? TEXT("true") : TEXT("false"),
+		bSprintButtonHeld ? TEXT("true") : TEXT("false"),
+		bRecovering ? TEXT("true") : TEXT("false"),
+		SprintMeter
+	);
+}
+
+
+void AHorrorCharacter::OnRep_SprintMeter()
+{
+	if (!IsLocallyControlled())
+	{
+		// Only non-owners accept server correction
+		// Owners trust local simulation
+	}
+
+	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
+
+	// Draw Sprint Meter above character in green
+	DebugDrawStats(TEXT("Sprint"), SprintMeter, FVector(0, 0, 120.f), FColor::Green);
+}
+
+void AHorrorCharacter::ServerStartSprint_Implementation()
+{
+	bSprintButtonHeld = true;
+}
+void AHorrorCharacter::ServerStopSprint_Implementation()
+{
+	bSprintButtonHeld = false;
 }
 
 	#pragma endregion
@@ -404,7 +365,6 @@ void AHorrorCharacter::ToggleDamage()
 	//	UE_LOG(LogTemp, Warning, TEXT("Damage ENABLED"));
 	//}
 }
-
 
 void AHorrorCharacter::ToggleTorch()
 {
