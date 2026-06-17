@@ -17,6 +17,7 @@
 #include "GameFramework/DamageType.h"
 #include "Engine/DamageEvents.h"
 #include "Engine/EngineTypes.h"
+#include "Components/UHealthComponent.h"
 
 AHorrorCharacter::AHorrorCharacter()
 {
@@ -24,12 +25,17 @@ AHorrorCharacter::AHorrorCharacter()
 	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
 	SpotLight->SetupAttachment(GetFirstPersonCameraComponent());
 
+	// create health component
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+
 	SpotLight->SetRelativeLocationAndRotation(FVector(30.0f, 17.5f, -5.0f), FRotator(-18.6f, -1.3f, 5.26f));
 	SpotLight->Intensity = 0.5;
 	SpotLight->SetIntensityUnits(ELightUnits::Lumens);
 	SpotLight->AttenuationRadius = 1050.0f;
 	SpotLight->InnerConeAngle = 18.7f;
 	SpotLight->OuterConeAngle = 45.24f;
+
+
 }
 
 void AHorrorCharacter::BeginPlay()
@@ -38,16 +44,12 @@ void AHorrorCharacter::BeginPlay()
 
 	// initialize sprint & health meter to max
 	SprintMeter = SprintTime;
-	HealthMeter = MaxHealth;
 
 	// Initialize the walk speed
 	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
 
 	// start the sprint tick timer
 	GetWorld()->GetTimerManager().SetTimer(SprintTimer, this, &AHorrorCharacter::SprintFixedTick, SprintFixedTickTime, true);
-
-	// start the health tick timer
-	GetWorld()->GetTimerManager().SetTimer(HealthTimer, this, &AHorrorCharacter::HealthFixedTick, HealthFixedTickTime, true);
 }
 
 void AHorrorCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -79,37 +81,16 @@ void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 	}
 }
 
-#pragma region NETWORKING
-
 void AHorrorCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-
-	DOREPLIFETIME(AHorrorCharacter, HealthMeter);
-	//DOREPLIFETIME(AHorrorCharacter, SprintMeter);
-	DOREPLIFETIME_CONDITION(AHorrorCharacter, SprintMeter, COND_OwnerOnly); //(check this) we may want to replicate sprint meter to everyone for UI purposes, but only the owner needs to know the exact value for gameplay purposes
-	DOREPLIFETIME(AHorrorCharacter, bTorchOn);
-	DOREPLIFETIME(AHorrorCharacter, bDisableDamage);
-}
-
-//Health
-void AHorrorCharacter::OnRep_HealthMeter()
-{
-	if (!IsLocallyControlled())
-	{
-		// Only non-owners accept server correction
-		// Owners trust local simulation
-	}
-		
-	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
 	
-	// Draw Health above character in cyan
-	DebugDrawStats(TEXT("Health"), HealthMeter, FVector(0, 0, 100.f), FColor::Red);
+	DOREPLIFETIME(AHorrorCharacter, bSprinting);
+	DOREPLIFETIME(AHorrorCharacter, bTorchOn);
 }
 
 
 
-#pragma endregion
 
 #pragma region OtherMethods
 
@@ -117,29 +98,32 @@ void AHorrorCharacter::OnRep_HealthMeter()
 
 void AHorrorCharacter::DoStartSprint()
 {
-	bSprintButtonHeld = true;
-
-	if (!HasAuthority())
-	{
-		ServerStartSprint();
-	}
+	//UE_LOG(LogTemp, Warning, TEXT("DoStartSprint CALLED"));
+	bSprinting = true;
+	
+	ServerSetSprinting(true);
+	
 }
 
 void AHorrorCharacter::DoEndSprint()
 {
-	bSprintButtonHeld = false;
-
-	if (!HasAuthority())
-	{
-		ServerStopSprint();
-	}
+	//UE_LOG(LogTemp, Warning, TEXT("DoEndSprint CALLED"));
+	bSprinting = false;
+	
+	ServerSetSprinting(false);
 }
 
 void AHorrorCharacter::SprintFixedTick()
 {
+	UE_LOG(LogTemp, Warning, TEXT("Sprinting: %d"), bSprinting);
+	UE_LOG(LogTemp, Warning, TEXT("Stamina: %f"), SprintMeter);
+
+	bHasStamina = SprintMeter > 0.01f;
+	
 	if (bSprinting)
 	{
-		SprintMeter -= SprintFixedTickTime;
+		if (bHasStamina)
+			SprintMeter -= SprintFixedTickTime;
 		//SprintMeter -= SprintDrainRate * SprintFixedTickTime;
 	}
 	else
@@ -148,157 +132,95 @@ void AHorrorCharacter::SprintFixedTick()
 		//SprintMeter += SprintRegenRate * SprintFixedTickTime; // can expand and add Regen 
 	}
 
-	SprintMeter = FMath::Min(SprintMeter, SprintTime); //if sprintTime exceeds SprintMeter we clamp it
-	
-	bHasStamina = SprintMeter > 0.f;
-	bool NewSprintingState = bSprintButtonHeld && bHasStamina;
-	
-	// Only react if state changes
-	if (NewSprintingState != bSprinting)
-	{
-		bSprinting = NewSprintingState;
-		OnSprintStateChanged.Broadcast(bSprinting);
-	}
+	SprintMeter = FMath::Clamp(SprintMeter, 0.f, SprintTime);
+	OnSprintStateChanged.Broadcast(bSprinting);
 	
 	const float TargetSpeed = bSprinting ? SprintSpeed : WalkSpeed;
 	GetCharacterMovement()->MaxWalkSpeed = TargetSpeed;
-	// GetCharacterMovement()->MaxWalkSpeed = FMath::FInterpTo(GetCharacterMovement()->MaxWalkSpeed, TargetSpeed, SprintFixedTickTime, 12.f); //only if we want to gradually change between speed
+	
+	//bRecovering = (!bSprinting && SprintMeter < SprintTime);
 
-	bRecovering = (!bSprinting && SprintMeter < SprintTime);
+	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
 
-	UE_LOG(LogTemp, 
-		Log, TEXT("SprintStates: bSprinting=%s, bSprintButtonHeld=%s, bRecovering=%s, SprintMeter=%.2f"),
-		bSprinting ? TEXT("true") : TEXT("false"),
-		bSprintButtonHeld ? TEXT("true") : TEXT("false"),
-		bRecovering ? TEXT("true") : TEXT("false"),
-		SprintMeter
-	);
+	// UE_LOG(LogTemp, 
+	// 	Log, TEXT("SprintStates: bSprinting=%s, bSprintButtonHeld=%s, bRecovering=%s, SprintMeter=%.2f"),
+	// 	bSprinting ? TEXT("true") : TEXT("false"),
+	// 	bSprintButtonHeld ? TEXT("true") : TEXT("false"),
+	// 	bRecovering ? TEXT("true") : TEXT("false"),
+	// 	SprintMeter
+	// );
 }
 
 
-void AHorrorCharacter::OnRep_SprintMeter()
+void AHorrorCharacter::OnRep_Sprinting()
 {
 	if (!IsLocallyControlled())
 	{
 		// Only non-owners accept server correction
 		// Owners trust local simulation
+		UE_LOG(LogTemp, Warning, TEXT("IsLocallyControlled sprint = %d"), bSprinting);
 	}
 
-	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
-
+	if (GetLocalRole() == ROLE_Authority)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("ROLE_Authority sprint = %d"), bSprinting);
+	}
+	
+	OnSprintStateChanged.Broadcast(bSprinting);
+	
 	// Draw Sprint Meter above character in green
 	DebugDrawStats(TEXT("Sprint"), SprintMeter, FVector(0, 0, 120.f), FColor::Green);
 }
 
-void AHorrorCharacter::ServerStartSprint_Implementation()
+//RPC Call
+void AHorrorCharacter::ServerSetSprinting_Implementation(bool bNewSprinting)
 {
-	bSprintButtonHeld = true;
+	bSprinting = bNewSprinting;
+	
+	// UE_LOG(LogTemp, Warning, TEXT("SERVER Sprint = %d"), bNewSprinting);
+	// UE_LOG(LogTemp, Warning, TEXT("SERVER Sprinting: %d Stamina: %f"), bSprinting, SprintMeter)
 }
-void AHorrorCharacter::ServerStopSprint_Implementation()
+
+//RPC validation
+bool AHorrorCharacter::ServerSetSprinting_Validate(bool bNewSprinting)
 {
-	bSprintButtonHeld = false;
+	if(bNewSprinting){
+
+		SprintMeter -= SprintFixedTickTime;
+		
+		if (SprintMeter < 0.f || SprintMeter > 100.f)
+		{
+			return false;
+		}
+	}
+
+	return true;
 }
 
 	#pragma endregion
 
-	#pragma region Health
 
 float AHorrorCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
-	if (bIsPlayerDead || bDisableDamage)
+	if (HealthComponent)
 	{
-		return 0.0f; // Already dead
+		return HealthComponent->ApplyDamage(DamageAmount);
 	}
-
-	//apply the damage
-	HealthMeter = FMath::Max(HealthMeter - DamageAmount, 0.0f);
-
-	bIsHealthTakingDamage = true;
-	bIsHealthRecovering = false;
-
-	//record the time of this damage tick for recovery delay purposes
-	LastDamageTime = GetWorld()->GetTimeSeconds();
-
-	if (HealthMeter <= 0.0f)
-		Die();
 
 	return DamageAmount;
 }
 
 void AHorrorCharacter::StopTakingDamage()
 {
-	bIsHealthTakingDamage = false;
 }
 
-void AHorrorCharacter::Die() {
-
-	bIsPlayerDead = true;
-	bIsHealthTakingDamage = false;
-	bIsHealthRecovering = false;
-
-	// Disable movement
-	//GetCharacterMovement()->DisableMovement();
-
-	// Trigger death animation
-	// PlayAnimMontage(DeathAnim);
-
-	// Optionally notify UI/game mode
-	//OnPlayerDied.Broadcast();
+void AHorrorCharacter::ToggleDamage()
+{
+	if (HealthComponent)
+		HealthComponent->ToggleDamage();
 }
 
-void AHorrorCharacter::HealthFixedTick() {
 
-	if (bIsPlayerDead) return; // Don't process if player is dead
-
-	const float TimeSinceDamage = GetWorld()->GetTimeSeconds() - LastDamageTime;
-
-	if (bDisableDamage == false) {
-		TakeDamage(HealthDamageRate, FDamageEvent(), nullptr, nullptr);
-	}
-	else
-		bIsHealthTakingDamage = false;
-
-
-	//show debug on screen
-	//DisplayMessage();
-
-	//UE_LOG(LogTemp, Warning, TEXT("bIsHealthTakingDamage: %s"), bIsHealthTakingDamage ? TEXT("True") : TEXT("False"));
-	if (bIsHealthTakingDamage && bDisableDamage == false)
-	{
-		LastDamageTime = GetWorld()->GetTimeSeconds();
-		//UE_LOG(LogTemp, Warning, TEXT("TimeSinceDamage: %f"), LastDamageTime);
-
-		// --- DAMAGE STATE ---
-		bIsHealthRecovering = false;
-
-		// Apply damage over time
-		HealthMeter = FMath::Max(HealthMeter - (HealthDamageRate * HealthFixedTickTime), 0.0f);
-
-		// RESET THE CHECKPOINT: While damage is happening, the timer stays at 0
-		LastDamageTime = GetWorld()->GetTimeSeconds();
-	}
-	else
-	{
-		// --- RECOVERY STATE ---
-		// Only start recovering if the "checkpoint" was long enough ago
-		if (TimeSinceDamage >= HealthRecoveryDelay && HealthMeter < MaxHealth)
-		{
-			//UE_LOG(LogTemp, Warning, TEXT("It's RECOVERY TIME AHHHH "));
-			bIsHealthRecovering = true;
-			HealthMeter = FMath::Min(HealthMeter + (HealthRecoveryRate * HealthFixedTickTime), MaxHealth);
-		}
-		else
-		{
-			// We are in the "Cooldown" period (waiting for the delay to finish)
-			bIsHealthRecovering = false;
-		}
-	}
-
-	// broadcast UI update
-	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
-	// Draw Health above character in cyan
-	DebugDrawStats(TEXT("Health"), HealthMeter, FVector(0, 0, 100.f), FColor::Red);
-}
 
 /// <summary>
 /// Displays a debug string above the character with the given label and value, offset by the specified amount. Useful for visualizing stats like health or stamina during development.
@@ -321,49 +243,10 @@ void AHorrorCharacter::DebugDrawStats(FString Label, float Value, FVector Offset
 	);
 }
 
-	#pragma endregion
 
-void AHorrorCharacter::DisplayMessage() {
-
-	if (GEngine)
-	{
-		GEngine->AddOnScreenDebugMessage(
-			-1,
-			0.5f,
-			FColor::Green,
-			FString::Printf(
-				TEXT("Health: %.1f | TakingDamage: %d | Recovering: %d"),
-				HealthMeter,
-				bIsHealthTakingDamage,
-				bIsHealthRecovering
-			)
-		);
-	}
-}
-
-void AHorrorCharacter::ToggleDamage()
+UHealthComponent* AHorrorCharacter::GetHealthComponent() const
 {
-	if(HasAuthority())
-	{
-		// If this is the server (e.g., Listen Server), toggle directly
-		bDisableDamage = !bDisableDamage;
-	}
-	else
-	{
-		// If this is a client, send request to the server
-		Server_SetDamageDisabled(!bDisableDamage);
-	}
-
-	//bDisableDamage = !bDisableDamage;
-	//
-	//if (bDisableDamage)
-	//{
-	//	UE_LOG(LogTemp, Warning, TEXT("Damage DISABLED - Recovery can take place"));
-	//}
-	//else
-	//{
-	//	UE_LOG(LogTemp, Warning, TEXT("Damage ENABLED"));
-	//}
+	return HealthComponent;
 }
 
 void AHorrorCharacter::ToggleTorch()
@@ -395,10 +278,7 @@ void AHorrorCharacter::ServerToggleTorch_Implementation()
 	OnRep_TorchState(); // update locally on server
 }
 
-void AHorrorCharacter::Server_SetDamageDisabled_Implementation(bool bDisabled)
-{
-	bDisableDamage = bDisabled;
-}
+
 
 #pragma endregion
 

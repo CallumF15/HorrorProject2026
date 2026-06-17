@@ -4,17 +4,19 @@
 
 #include "CoreMinimal.h"
 #include "HorrorProject2026Character.h"
+#include "Components/UHealthComponent.h"
 #include "HorrorCharacter.generated.h"
+
 
 
 class USpotLightComponent;
 class UInputAction;
+class UHealthComponent;
+
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUpdateSprintMeterDelegate, float, Percentage);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FSprintStateChangedDelegate, bool, bSprinting);
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FUpdateHealthMeterDelegate, float, Percentage);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHealthStateChangedDelegate, bool, bTakenHealthDamage);
 
 /**
  *  Simple first person horror character
@@ -28,6 +30,11 @@ class HORRORPROJECT2026_API AHorrorCharacter : public AHorrorProject2026Characte
 	/** Player light source */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
 	USpotLightComponent* SpotLight;
+
+public:
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	UHealthComponent* HealthComponent;
 	
 protected:
 
@@ -48,16 +55,12 @@ protected:
 #pragma region SPRINTING
 	
 	/** If true, we're sprinting */
+	UPROPERTY(ReplicatedUsing = OnRep_Sprinting) 
 	bool bSprinting = false;
-
-	bool bWantstoSprint;
 
 	/** If true, we're recovering stamina */
 	bool bRecovering = false;
-
-	/** Is the sprint button down? */
-	bool bSprintButtonHeld = false;
-
+	
 	bool bHasStamina;
 
 	/** Default walk speed when not sprinting or recovering */
@@ -67,13 +70,12 @@ protected:
 	/** Time interval for sprinting stamina ticks */
 	UPROPERTY(EditAnywhere, Category="Sprint", meta = (ClampMin = 0, ClampMax = 1, Units = "s"))
 	float SprintFixedTickTime = 0.03333f; // 30 hz or approximately 30 updates per second
-
-	UPROPERTY(ReplicatedUsing = OnRep_SprintMeter) 
+	
 	float SprintMeter = 0.0f; 	/** Sprint stamina amount. Maxes at SprintTime */
 
 	/** How long we can sprint for, in seconds */
 	UPROPERTY(EditAnywhere, Category="Sprint", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
-	float SprintTime = 15.0f;
+	float SprintTime = 3.0f;
 
 	/** Walk speed while sprinting */
 	UPROPERTY(EditAnywhere, Category="Sprint", meta = (ClampMin = 0, ClampMax = 10, Units = "cm/s"))
@@ -87,69 +89,20 @@ protected:
 	UPROPERTY(EditAnywhere, Category="Recovery", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
 	float RecoveryTime = 0.0f;
 	
-
-
 	/** Sprint tick timer */
 	FTimerHandle SprintTimer;
 
 	//Methods
 	
 	UFUNCTION()
-	void OnRep_SprintMeter();
+	void OnRep_Sprinting();
 
-	UFUNCTION(Server, Reliable)
-	void ServerStartSprint();
-	void ServerStartSprint_Implementation();
-
-	UFUNCTION(Server, Reliable)
-	void ServerStopSprint();
-	void ServerStopSprint_Implementation();
+	UFUNCTION(Server, Reliable, WithValidation)
+	void ServerSetSprinting(bool bNewSprinting);
 
 #pragma endregion SPRINTING
 
-
-#pragma region HEALTH
-
-	UPROPERTY(ReplicatedUsing = OnRep_HealthMeter) //adding multiplayer code for health replication
-	float HealthMeter = 0.0f; 				// Current Health
-
-	UPROPERTY(EditDefaultsOnly, Category = "Health") 
-	float MaxHealth = 100.0f;			 	// Max Health
-	bool bIsHealthTakingDamage = false; 	// If true, we're taking damage 
-	bool bIsHealthRecovering = false;		// If true, we're recovering health 
-	bool bIsPlayerDead = false;			    // If true, we're recovering health
-
-
-
-	/** Time interval for health ticks */
-	UPROPERTY(EditAnywhere, Category = "Health", meta = (ClampMin = 0, ClampMax = 1, Units = "s"))
-	float HealthFixedTickTime = 0.03333f; //consider changing tick rate later on 
-
-
-	UPROPERTY(EditAnywhere, Category = "Recovery", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
-	float HealthRecoveryRate = 10.0f; 	//Amount of health to recover per second
-
-	/** Time after damage before health meter recovery begins  */
-	UPROPERTY(EditAnywhere, Category = "Health")
-	float HealthRecoveryDelay = 2.0f; // seconds after last damage before recovery begins
-
-
-	/** Time after damage before health meter recovery begins  */
-	UPROPERTY(EditAnywhere, Category = "Recovery", meta = (ClampMin = 0, ClampMax = 10, Units = "s"))
-	float HealthDamageRate = .2f; // Amount of health to lose per second while taking damage
-
-
-	float LastDamageTime = 0.0f; // Time of the last damage tick, used for recovery delay calculations
-
-	/** Health tick timer */
-	FTimerHandle HealthTimer;
-
-	UFUNCTION()
-	void OnRep_HealthMeter();
-
-
-#pragma endregion HEALTH
-
+	
 	void DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color);
 
 	UPROPERTY(ReplicatedUsing = OnRep_TorchState)
@@ -162,7 +115,6 @@ protected:
 	/** Server RPC to toggle torch on authoritative server */
 	UFUNCTION(Server, Reliable)
 	void ServerToggleTorch(); 
-	void ServerToggleTorch_Implementation();
 
 public:
 
@@ -171,12 +123,6 @@ public:
 
 	/** Delegate called when we start and stop sprinting */
 	FSprintStateChangedDelegate OnSprintStateChanged;
-
-	/** Delegate called when the Health meter should be updated */
-	FUpdateHealthMeterDelegate OnHealthMeterUpdated;
-
-	/** Delegate called when we take damage to health */
-	FHealthStateChangedDelegate OnHealthStateChanged;
 
 protected:
 
@@ -211,29 +157,19 @@ protected:
 	/** Called while sprinting at a fixed time interval */
 	void SprintFixedTick();
 
+
+public:
+	//UFUNCTION()
+	UHealthComponent* GetHealthComponent() const;
+	
 protected: 
 
 
+		
 	//Player Health bar reduces based on incoming damage
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	void StopTakingDamage();
-
-	//temp method
-	void DisplayMessage();
 	void ToggleDamage();
-	//end
-
-	void Die();
-
-	/** Called when taking damage at a fixed time interval */
-	void HealthFixedTick();
-
-
-	UPROPERTY(Replicated)
-	bool bDisableDamage = false; // Temporary disable damage for testing
-
-	UFUNCTION(Server, Reliable)
-	void Server_SetDamageDisabled(bool bDisabled);
 
 protected:
 

@@ -6,11 +6,12 @@
 
 void UHorrorUI::SetupCharacter(AHorrorCharacter* HorrorCharacter)
 {
+	UHealthComponent* HealthComp = HorrorCharacter->GetHealthComponent();
+	
 	HorrorCharacter->OnSprintMeterUpdated.AddDynamic(this, &UHorrorUI::OnSprintMeterUpdated);
 	HorrorCharacter->OnSprintStateChanged.AddDynamic(this, &UHorrorUI::OnSprintStateChanged);
-	HorrorCharacter->OnHealthMeterUpdated.AddDynamic(this, &UHorrorUI::OnHealthMeterUpdated);
-	HorrorCharacter->OnHealthStateChanged.AddDynamic(this, &UHorrorUI::OnHealthStateChanged);
-
+	HealthComp->OnHealthMeterUpdated.AddDynamic(this, &UHorrorUI::OnHealthMeterUpdated);
+	HealthComp->OnHealthStateChanged.AddDynamic(this, &UHorrorUI::OnHealthStateChanged);
 }
 
 void UHorrorUI::OnSprintMeterUpdated(float Percent)
