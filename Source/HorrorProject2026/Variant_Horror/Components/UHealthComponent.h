@@ -63,9 +63,7 @@ public:
 	
 	/** Called when taking damage at a fixed time interval */
 	void HealthFixedTick();
-
-	void DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color);
-
+	
 	//Damage
 	// virtual float ApplyDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser);
 	float ApplyDamage(float DamageAmount);

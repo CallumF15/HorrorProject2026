@@ -1,63 +1,40 @@
-﻿// Copyright Epic Games, Inc. All Rights Reserved.
-
-
-
-#include "Variant_Horror/HorrorCharacter.h"
+﻿#include "Variant_Horror/HorrorCharacter.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
-#include "GameFramework/CharacterMovementComponent.h"
 #include "Camera/CameraComponent.h"
-#include "Components/SpotLightComponent.h"
 
-//network
-#include "Net/UnrealNetwork.h"
 
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
 #include "GameFramework/DamageType.h"
-#include "Engine/DamageEvents.h"
 #include "Engine/EngineTypes.h"
 #include "Components/UHealthComponent.h"
+#include "Components/UTorchComponent.h"
 
 AHorrorCharacter::AHorrorCharacter()
 {
-	// create the spotlight
+	// create health/sprint/torch component
+	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	SprintComponent = CreateDefaultSubobject<USprintComponent>(TEXT("SprintComponent"));
+	TorchComponent = CreateDefaultSubobject<UTorchComponent>(TEXT("TorchComponent"));
+	
 	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
 	SpotLight->SetupAttachment(GetFirstPersonCameraComponent());
-
-	// create health component
-	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
-
-	SpotLight->SetRelativeLocationAndRotation(FVector(30.0f, 17.5f, -5.0f), FRotator(-18.6f, -1.3f, 5.26f));
-	SpotLight->Intensity = 0.5;
-	SpotLight->SetIntensityUnits(ELightUnits::Lumens);
-	SpotLight->AttenuationRadius = 1050.0f;
-	SpotLight->InnerConeAngle = 18.7f;
-	SpotLight->OuterConeAngle = 45.24f;
-
-
+	SpotLight->SetVisibility(false); // start off
+	SpotLight->Intensity = 500.0f;
 }
 
 void AHorrorCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	// initialize sprint & health meter to max
-	SprintMeter = SprintTime;
-
-	// Initialize the walk speed
-	GetCharacterMovement()->MaxWalkSpeed = WalkSpeed;
-
-	// start the sprint tick timer
-	GetWorld()->GetTimerManager().SetTimer(SprintTimer, this, &AHorrorCharacter::SprintFixedTick, SprintFixedTickTime, true);
+	TorchComponent->SetSpotLight(SpotLight);
+	
 }
 
 void AHorrorCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
-
-	// clear the sprint timer
-	GetWorld()->GetTimerManager().ClearTimer(SprintTimer);
 }
 
 void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -84,120 +61,9 @@ void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 void AHorrorCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
-	
-	DOREPLIFETIME(AHorrorCharacter, bSprinting);
-	DOREPLIFETIME(AHorrorCharacter, bTorchOn);
 }
 
 
-
-
-#pragma region OtherMethods
-
-	#pragma region Sprinting
-
-void AHorrorCharacter::DoStartSprint()
-{
-	//UE_LOG(LogTemp, Warning, TEXT("DoStartSprint CALLED"));
-	bSprinting = true;
-	
-	ServerSetSprinting(true);
-	
-}
-
-void AHorrorCharacter::DoEndSprint()
-{
-	//UE_LOG(LogTemp, Warning, TEXT("DoEndSprint CALLED"));
-	bSprinting = false;
-	
-	ServerSetSprinting(false);
-}
-
-void AHorrorCharacter::SprintFixedTick()
-{
-	UE_LOG(LogTemp, Warning, TEXT("Sprinting: %d"), bSprinting);
-	UE_LOG(LogTemp, Warning, TEXT("Stamina: %f"), SprintMeter);
-
-	bHasStamina = SprintMeter > 0.01f;
-	
-	if (bSprinting)
-	{
-		if (bHasStamina)
-			SprintMeter -= SprintFixedTickTime;
-		//SprintMeter -= SprintDrainRate * SprintFixedTickTime;
-	}
-	else
-	{
-		SprintMeter += SprintFixedTickTime; //recover stamima
-		//SprintMeter += SprintRegenRate * SprintFixedTickTime; // can expand and add Regen 
-	}
-
-	SprintMeter = FMath::Clamp(SprintMeter, 0.f, SprintTime);
-	OnSprintStateChanged.Broadcast(bSprinting);
-	
-	const float TargetSpeed = bSprinting ? SprintSpeed : WalkSpeed;
-	GetCharacterMovement()->MaxWalkSpeed = TargetSpeed;
-	
-	//bRecovering = (!bSprinting && SprintMeter < SprintTime);
-
-	OnSprintMeterUpdated.Broadcast(SprintMeter / SprintTime);
-
-	// UE_LOG(LogTemp, 
-	// 	Log, TEXT("SprintStates: bSprinting=%s, bSprintButtonHeld=%s, bRecovering=%s, SprintMeter=%.2f"),
-	// 	bSprinting ? TEXT("true") : TEXT("false"),
-	// 	bSprintButtonHeld ? TEXT("true") : TEXT("false"),
-	// 	bRecovering ? TEXT("true") : TEXT("false"),
-	// 	SprintMeter
-	// );
-}
-
-
-void AHorrorCharacter::OnRep_Sprinting()
-{
-	if (!IsLocallyControlled())
-	{
-		// Only non-owners accept server correction
-		// Owners trust local simulation
-		UE_LOG(LogTemp, Warning, TEXT("IsLocallyControlled sprint = %d"), bSprinting);
-	}
-
-	if (GetLocalRole() == ROLE_Authority)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("ROLE_Authority sprint = %d"), bSprinting);
-	}
-	
-	OnSprintStateChanged.Broadcast(bSprinting);
-	
-	// Draw Sprint Meter above character in green
-	DebugDrawStats(TEXT("Sprint"), SprintMeter, FVector(0, 0, 120.f), FColor::Green);
-}
-
-//RPC Call
-void AHorrorCharacter::ServerSetSprinting_Implementation(bool bNewSprinting)
-{
-	bSprinting = bNewSprinting;
-	
-	// UE_LOG(LogTemp, Warning, TEXT("SERVER Sprint = %d"), bNewSprinting);
-	// UE_LOG(LogTemp, Warning, TEXT("SERVER Sprinting: %d Stamina: %f"), bSprinting, SprintMeter)
-}
-
-//RPC validation
-bool AHorrorCharacter::ServerSetSprinting_Validate(bool bNewSprinting)
-{
-	if(bNewSprinting){
-
-		SprintMeter -= SprintFixedTickTime;
-		
-		if (SprintMeter < 0.f || SprintMeter > 100.f)
-		{
-			return false;
-		}
-	}
-
-	return true;
-}
-
-	#pragma endregion
 
 
 float AHorrorCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
@@ -209,11 +75,6 @@ float AHorrorCharacter::TakeDamage(float DamageAmount, const FDamageEvent& Damag
 
 	return DamageAmount;
 }
-
-void AHorrorCharacter::StopTakingDamage()
-{
-}
-
 void AHorrorCharacter::ToggleDamage()
 {
 	if (HealthComponent)
@@ -248,37 +109,39 @@ UHealthComponent* AHorrorCharacter::GetHealthComponent() const
 {
 	return HealthComponent;
 }
+USprintComponent* AHorrorCharacter::GetSprintComponent() const
+{
+	return SprintComponent;
+}
+UTorchComponent* AHorrorCharacter::GetTorchComponent() const
+{
+	return TorchComponent;
+}
 
+void AHorrorCharacter::DoStartSprint()
+{
+	if (SprintComponent)
+	{
+		SprintComponent->DoStartSprint(); // or whatever your component function is
+	}
+}
+void AHorrorCharacter::DoEndSprint()
+{
+	if (SprintComponent)
+	{
+		SprintComponent->DoEndSprint(); // or whatever your component function is
+	}
+}
 void AHorrorCharacter::ToggleTorch()
 {
-	if (HasAuthority())
-	{
-		// If this is the server (e.g., Listen Server), toggle directly
-		bTorchOn = !bTorchOn;
-		OnRep_TorchState();
-	}
+	// if (TorchComponent)
+	// 	TorchComponent->ToggleTorch();
+
+	UE_LOG(LogTemp, Warning, TEXT("HorrorCharacter::ToggleTorch called"));
+	if (TorchComponent)
+		TorchComponent->ToggleTorch();
 	else
-	{
-		// If this is a client, send request to the server
-		ServerToggleTorch();
-	}
+		UE_LOG(LogTemp, Error, TEXT("TorchComponent is NULL"));
 }
 
-void AHorrorCharacter::OnRep_TorchState()
-{
-	if (SpotLight)
-	{
-		SpotLight->SetVisibility(bTorchOn);
-	}
-}
-
-void AHorrorCharacter::ServerToggleTorch_Implementation()
-{
-	bTorchOn = !bTorchOn;
-	OnRep_TorchState(); // update locally on server
-}
-
-
-
-#pragma endregion
 

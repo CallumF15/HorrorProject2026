@@ -43,9 +43,6 @@ void UHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 void UHealthComponent::OnRep_HealthMeter()
 {
 	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
-	
-	// Draw Health above character in cyan
-	DebugDrawStats(TEXT("Health"), HealthMeter, FVector(0, 0, 100.f), FColor::Red);
 }
 	
 void UHealthComponent::HealthFixedTick() {
@@ -99,30 +96,6 @@ void UHealthComponent::HealthFixedTick() {
 
 	// broadcast UI update
 	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
-	
-	// Draw Health above character in cyan
-	DebugDrawStats(TEXT("Health"), HealthMeter, FVector(0, 0, 100.f), FColor::Red);
-}
-
-/// <summary>
-/// Displays a debug string above the character with the given label and value, offset by the specified amount. Useful for visualizing stats like health or stamina during development.
-/// </summary>
-void UHealthComponent::DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color)
-{
-	if (!GetWorld()) return;
-
-	// Combine the label and value into a string
-	const FString Text = FString::Printf(TEXT("%s: %.1f"), *Label, Value);
-
-	// DrawDebugString(
-	// 	GetWorld(),
-	// 	Offset,
-	// 	Text,
-	// 	this,
-	// 	Color,
-	// 	0.f,   // 0 = every frame
-	// 	true   // draw on top
-	// );
 }
 
 float UHealthComponent::ApplyDamage(float DamageAmount)

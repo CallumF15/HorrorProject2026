@@ -82,7 +82,6 @@ protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* InputComponent) override;
 
 	void Tick(float DeltaTime);
-	
 
 public:
 
