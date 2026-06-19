@@ -13,11 +13,6 @@ class HORRORPROJECT2026_API UTorchComponent : public USceneComponent
 
 public:
 	UTorchComponent();
-	
-	UPROPERTY()
-	USceneComponent* CameraComponent;
-
-	void SetSpotLight(USpotLightComponent* InSpotLight);
 
 protected:
 
@@ -34,6 +29,9 @@ protected:
 	/** Server RPC to toggle torch on authoritative server */
 	UFUNCTION(Server, Reliable)
 	void ServerToggleTorch();
+
+	void ToggleTorchState();
+	void ApplyTorchState();
 
 private:
 	UPROPERTY()

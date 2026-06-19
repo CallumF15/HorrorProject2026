@@ -7,28 +7,15 @@
 
 UTorchComponent::UTorchComponent()
 {
-	// SpotLight->SetMobility(EComponentMobility::Movable);
-	// SpotLight->SetRelativeLocationAndRotation(FVector(30.0f, 17.5f, -5.0f), FRotator(-18.6f, -1.3f, 5.26f));
-	// SpotLight->Intensity = 500.0f;
-	// SpotLight->SetIntensityUnits(ELightUnits::Lumens);
-	// SpotLight->AttenuationRadius = 1050.0f;
-	// SpotLight->InnerConeAngle = 18.7f;
-	// SpotLight->OuterConeAngle = 45.24f;
-	// SpotLight->SetVisibility(true);
-	// SpotLight->SetMobility(EComponentMobility::Movable);
+	SetIsReplicatedByDefault(true);
 }
 
-
-void UTorchComponent::SetSpotLight(USpotLightComponent* InSpotLight)
+void UTorchComponent::BeginPlay()
 {
-	SpotLight = InSpotLight;
+	Super::BeginPlay();
+	
+	SpotLight = GetOwner()->FindComponentByClass<USpotLightComponent>();
 
-	UE_LOG(LogTemp, Warning, TEXT("SetSpotLight called on: %s, SpotLight: %s"), 
-	GetOwner()->HasAuthority() ? TEXT("SERVER") : TEXT("CLIENT"),
-	SpotLight ? TEXT("VALID") : TEXT("NULL"));
-
-	// All spotlight setup lives here
-	SpotLight->SetMobility(EComponentMobility::Movable);
 	SpotLight->SetRelativeLocationAndRotation(FVector(30.0f, 17.5f, -5.0f), FRotator(-18.6f, -1.3f, 5.26f));
 	SpotLight->Intensity = 500.0f;
 	SpotLight->SetIntensityUnits(ELightUnits::Lumens);
@@ -37,17 +24,6 @@ void UTorchComponent::SetSpotLight(USpotLightComponent* InSpotLight)
 	SpotLight->OuterConeAngle = 45.24f;
 	SpotLight->SetVisibility(true);
 	SpotLight->SetMobility(EComponentMobility::Movable);
-}
-
-
-void UTorchComponent::BeginPlay()
-{
-	Super::BeginPlay();
-	
-	if (SpotLight)
-	{
-		bTorchOn = true;
-	}
 }
 void UTorchComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
@@ -58,43 +34,67 @@ void UTorchComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 void UTorchComponent::ToggleTorch()
 {
-	UE_LOG(LogTemp, Warning, TEXT("UTorchComponent::ToggleTorch - SpotLight: %s, bTorchOn: %d, HasAuthority: %d"), 
-	SpotLight ? TEXT("VALID") : TEXT("NULL"), bTorchOn, GetOwner()->HasAuthority());
+	UE_LOG(LogTemp, Warning, TEXT("CLIENT CLICK"));
 
+	ServerToggleTorch();
 	
-	if (GetOwner()->HasAuthority())
-	{
-		// If this is the server (e.g., Listen Server), toggle directly
-		bTorchOn = !bTorchOn;
-		UE_LOG(LogTemp, Warning, TEXT("bTorchOn now: %d"), bTorchOn);
-		OnRep_TorchState();
-	}
-	else
-	{
-		// If this is a client, send request to the server
-		ServerToggleTorch();
-	}
-
-
 }
+
+void UTorchComponent::ToggleTorchState()
+{
+	bTorchOn = !bTorchOn;
+}
+
+void UTorchComponent::ApplyTorchState()
+{
+	// UE_LOG(LogTemp, Warning,
+	// 	   TEXT("ApplyTorchState: %s SpotLight=%s bTorchOn=%d"),
+	// 	   *GetOwner()->GetName(),
+	// 	   SpotLight ? TEXT("VALID") : TEXT("NULL"),
+	// 	   bTorchOn);
+
+	UE_LOG(LogTemp, Warning, TEXT("APPLY ENTRY %s"), *GetOwner()->GetName());
+
+	if (!SpotLight)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("NO SPOTLIGHT ON %s"), *GetOwner()->GetName());
+		return;
+	}
+	
+	SpotLight->SetVisibility(bTorchOn);
+	
+	UE_LOG(LogTemp, Warning,
+	TEXT("%s VisibleAfter=%d"),
+	*GetOwner()->GetName(),
+	SpotLight->IsVisible());
+	
+	UE_LOG(LogTemp, Warning,
+		TEXT("ApplyTorchState: %s -> %d"),
+		*GetOwner()->GetName(),
+		bTorchOn);
+}
+
+
+
 void UTorchComponent::OnRep_TorchState()
 {
-	if (SpotLight)
-	{
-		UE_LOG(LogTemp, Warning, TEXT("Mobility: %d"), (int32)SpotLight->Mobility.GetValue());
-		SpotLight->SetVisibility(bTorchOn);
-		SpotLight->MarkRenderStateDirty();
-		UE_LOG(LogTemp, Warning, TEXT("IsVisible after set: %d"), SpotLight->IsVisible());
-	}
+	UE_LOG(LogTemp, Warning,
+		TEXT("OnRep_TorchState: %s -> %d, LocalRole=%d"),
+		*GetOwner()->GetName(),
+		bTorchOn,
+		(int32)GetOwner()->GetLocalRole());;
+	
+	ApplyTorchState();
 }
 
 void UTorchComponent::ServerToggleTorch_Implementation()
 {
-	UE_LOG(LogTemp, Warning, TEXT("ServerToggleTorch_Implementation called - bTorchOn: %d"), bTorchOn);
-	
-	bTorchOn = !bTorchOn;
-	UE_LOG(LogTemp, Warning, TEXT("bTorchOn now: %d"), bTorchOn);
-	OnRep_TorchState(); // update locally on server
+	UE_LOG(LogTemp, Warning, TEXT("SERVER RPC FIRED"));
+
+	ToggleTorchState();
+	ApplyTorchState();
+
+	UE_LOG(LogTemp, Warning, TEXT("SERVER VALUE AFTER TOGGLE: %d"), bTorchOn);
 }
 
 

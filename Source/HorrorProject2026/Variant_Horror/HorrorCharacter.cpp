@@ -20,16 +20,13 @@ AHorrorCharacter::AHorrorCharacter()
 	
 	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
 	SpotLight->SetupAttachment(GetFirstPersonCameraComponent());
-	SpotLight->SetVisibility(false); // start off
-	SpotLight->Intensity = 500.0f;
 }
 
 void AHorrorCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
-	TorchComponent->SetSpotLight(SpotLight);
-	
+	// TorchComponent->SetSpotLight(SpotLight);
 }
 
 void AHorrorCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
@@ -40,7 +37,6 @@ void AHorrorCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
 void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
-
 	{
 		// Set up action bindings
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
@@ -63,9 +59,6 @@ void AHorrorCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
-
-
-
 float AHorrorCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (HealthComponent)
@@ -80,8 +73,6 @@ void AHorrorCharacter::ToggleDamage()
 	if (HealthComponent)
 		HealthComponent->ToggleDamage();
 }
-
-
 
 /// <summary>
 /// Displays a debug string above the character with the given label and value, offset by the specified amount. Useful for visualizing stats like health or stamina during development.
@@ -134,8 +125,19 @@ void AHorrorCharacter::DoEndSprint()
 }
 void AHorrorCharacter::ToggleTorch()
 {
-	// if (TorchComponent)
-	// 	TorchComponent->ToggleTorch();
+	UE_LOG(LogTemp, Warning,
+TEXT("NAME=%s ROLE=%d REMOTE=%d AUTH=%d LOCALCTRL=%d NETMODE=%d"),
+*GetName(),
+(int32)GetLocalRole(),
+(int32)GetRemoteRole(),
+HasAuthority(),
+IsLocallyControlled(),
+(int32)GetNetMode());
+
+	if (!IsLocallyControlled())
+	{
+		return;
+	}
 
 	UE_LOG(LogTemp, Warning, TEXT("HorrorCharacter::ToggleTorch called"));
 	if (TorchComponent)

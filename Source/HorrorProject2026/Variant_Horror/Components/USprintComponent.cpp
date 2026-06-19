@@ -125,6 +125,7 @@ void USprintComponent::ServerSetSprinting_Implementation(bool bNewSprinting)
 }
 
 
+//validate sprinting, if sprint exceeds max or goes below min then the client will be kicked 
 bool USprintComponent::ServerSetSprinting_Validate(bool bNewSprinting)
 {
 	if(bNewSprinting){
