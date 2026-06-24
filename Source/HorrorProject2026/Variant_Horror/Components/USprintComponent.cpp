@@ -56,8 +56,8 @@ void USprintComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 
 void USprintComponent::SprintFixedTick()
 {
-	UE_LOG(LogTemp, Warning, TEXT("Sprinting: %d"), bSprinting);
-	UE_LOG(LogTemp, Warning, TEXT("Stamina: %f"), SprintMeter);
+	// UE_LOG(LogTemp, Warning, TEXT("Sprinting: %d"), bSprinting);
+	// UE_LOG(LogTemp, Warning, TEXT("Stamina: %f"), SprintMeter);
 
 	bHasStamina = SprintMeter > 0.01f;
 	

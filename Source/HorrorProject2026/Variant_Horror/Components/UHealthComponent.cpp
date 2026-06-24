@@ -1,11 +1,13 @@
 ﻿#include "UHealthComponent.h"
+#include "Components/ActorComponent.h"
+#include "Components/WidgetComponent.h"
+#include "GameFramework/Character.h"
 #include "Net/UnrealNetwork.h"
 
 UHealthComponent::UHealthComponent()
 {
 	SetIsReplicatedByDefault(true);
 }
-
 
 void UHealthComponent::BeginPlay()
 {
@@ -40,25 +42,51 @@ void UHealthComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME(UHealthComponent, HealthMeter);
 }
 
+//RepNotify function. This function will be triggered, when a client successfully receives the replicated data
 void UHealthComponent::OnRep_HealthMeter()
 {
+	// UE_LOG(LogTemp, Warning, TEXT("Health updated via replication: %f"), HealthMeter);
+	OnHealthUpdate();
 	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
 }
-	
-void UHealthComponent::HealthFixedTick() {
 
+// void UHealthComponent::Server_SetDamageDisabled_Implementation(bool bDisabled)
+// {
+// 	bDisableDamage = bDisabled;
+// }
+
+void UHealthComponent::ServerHealth_Implementation()
+{
+	//if (HealthMeter < MinHealth || HealthMeter > MaxHealth) return;
+}
+
+//validation function helps the server determine whether an RPC should or should not run
+//client makes a call to execute a server RPC, the validation function is called first on the server.
+bool UHealthComponent::ServerHealth_Validate()
+{
+	// If the inputs pass validation, the implementation is called.
+	// If the inputs fail validation, the invoking client is disconnected from the server.
+	
+	if (HealthMeter > MaxHealth || HealthMeter < 0) //check this (specifically HealthFixedTickTime)
+	{
+		return false;
+	}
+	
+	return true;
+}
+
+void UHealthComponent::HealthFixedTick()
+{
 	if (bIsPlayerDead) return; // Don't process if player is dead
 
 	const float TimeSinceDamage = GetWorld()->GetTimeSeconds() - LastDamageTime;
-
 	
 	 if (bDisableDamage == false) {
 	 	ApplyDamage(HealthDamageRate);
 	 }
 	 else
 	 	bIsHealthTakingDamage = false;
-
-
+	
 	//show debug on screen
 	//DisplayMessage();
 
@@ -77,9 +105,8 @@ void UHealthComponent::HealthFixedTick() {
 		// RESET THE CHECKPOINT: While damage is happening, the timer stays at 0
 		LastDamageTime = GetWorld()->GetTimeSeconds();
 	}
-	else
+	else // RECOVERY STATE
 	{
-		// --- RECOVERY STATE ---
 		// Only start recovering if the "checkpoint" was long enough ago
 		if (TimeSinceDamage >= HealthRecoveryDelay && HealthMeter < MaxHealth)
 		{
@@ -98,16 +125,62 @@ void UHealthComponent::HealthFixedTick() {
 	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
 }
 
+void UHealthComponent::OnHealthUpdate()
+{
+	APawn* Pawn = Cast<APawn>(GetOwner());
+	//Client-specific functionality
+	if (Pawn->IsLocallyControlled())
+	{
+		// FString healthMessage = FString::Printf(TEXT("You now have %f health remaining."), HealthMeter);
+		// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, healthMessage);
+	 
+		if (HealthMeter <= 0)
+		{
+			FString deathMessage = FString::Printf(TEXT("You have been killed."));
+			GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Red, deathMessage);
+		}
+	}
+	 
+	//Server-specific functionality
+	if (Pawn->GetLocalRole() == ROLE_Authority)
+	{
+		// FString healthMessage = FString::Printf(TEXT("%s now has %f health remaining."), *GetFName().ToString(), HealthMeter);
+		// GEngine->AddOnScreenDebugMessage(-1, 5.f, FColor::Blue, healthMessage);
+	}
+	 
+	//Functions that occur on all machines.
+	/*
+		Any special functionality that should occur as a result of damage or death should be placed here.
+	*/
+}
+
+//by checking that the Network Role of the Actor is ROLE_Authority, you restrict this function to execute only if it is called on the hosted game server.
+void UHealthComponent::SetCurrentHealth(float healthValue)
+{
+	APawn* Pawn = Cast<APawn>(GetOwner());
+	
+	if (Pawn->GetLocalRole() == ROLE_Authority) 
+	{
+		HealthMeter = FMath::Clamp(healthValue, 0.f, MaxHealth);
+		OnHealthUpdate();
+	}
+}
+
 float UHealthComponent::ApplyDamage(float DamageAmount)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Health after damage: %f"), HealthMeter);
+	// UE_LOG(LogTemp, Warning, TEXT("Health after damage: %f"), HealthMeter);
 	
 	if (bIsPlayerDead || bDisableDamage)
 		return 0.0f; // Already dead
 
 	//apply the damage
-	HealthMeter = FMath::Max(HealthMeter - DamageAmount, 0.0f);
-
+	SetCurrentHealth(HealthMeter - DamageAmount);
+	
+	// UE_LOG(LogTemp, Warning, TEXT("Damage taken: %f | New Health: %f | Owner: %s"),
+	// DamageAmount,
+	// HealthMeter,
+	// *GetOwner()->GetName());
+	
 	bIsHealthTakingDamage = true;
 	bIsHealthRecovering = false;
 
@@ -117,12 +190,9 @@ float UHealthComponent::ApplyDamage(float DamageAmount)
 	if (HealthMeter <= 0.0f)
 		Die();
 
-	return DamageAmount;
-}
+	OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
 
-void UHealthComponent::StopTakingDamage()
-{
-	bIsHealthTakingDamage = false;
+	return DamageAmount;
 }
 
 void UHealthComponent::Die() {
@@ -141,25 +211,26 @@ void UHealthComponent::Die() {
 	//OnPlayerDied.Broadcast();
 }
 
-
 void UHealthComponent::ToggleDamage()
 {
-	if(GetOwner()->HasAuthority())
-	{
-		// If this is the server (e.g., Listen Server), toggle directly
-		bDisableDamage = !bDisableDamage;
-	}
-	else
-	{
-		// If this is a client, send request to the server
-		Server_SetDamageDisabled(!bDisableDamage);
-	}
+	bDisableDamage = !bDisableDamage;
+
+	// UE_LOG(LogTemp, Warning, TEXT("Damage toggled locally: %d"), bDisableDamage);
+	// OnHealthMeterUpdated.Broadcast(HealthMeter / MaxHealth);
+	
+	// if(GetOwner()->HasAuthority())
+	// {
+	// 	// If this is the server (e.g., Listen Server), toggle directly
+	// 	bDisableDamage = !bDisableDamage;
+	// }
+	// else
+	// {
+	// 	//If this is a client, send request to the server
+	// 	Server_SetDamageDisabled(!bDisableDamage);
+	// }
 }
 
-void UHealthComponent::Server_SetDamageDisabled_Implementation(bool bDisabled)
-{
-	bDisableDamage = bDisabled;
-}
+
 
 
 

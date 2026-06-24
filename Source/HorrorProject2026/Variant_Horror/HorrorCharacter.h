@@ -5,6 +5,7 @@
 #include "Components/UHealthComponent.h"
 #include "Components/USprintComponent.h"
 #include "Components/UTorchComponent.h"
+#include "Components/WidgetComponent.h"
 #include "HorrorCharacter.generated.h"
 
 class USpotLightComponent;
@@ -13,6 +14,7 @@ class UInputAction;
 class UHealthComponent;
 class USprintComponent;
 class UTorchComponent;
+class UShooterComponent;
 
 UCLASS(abstract)
 class HORRORPROJECT2026_API AHorrorCharacter : public AHorrorProject2026Character
@@ -49,10 +51,14 @@ public: //Component Related
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	UTorchComponent* TorchComponent;
+	
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
+	UShooterComponent* ShooterComponent;
 
 	UHealthComponent* GetHealthComponent() const;
 	USprintComponent* GetSprintComponent() const;
 	UTorchComponent* GetTorchComponent() const;
+	UShooterComponent* GetShooterComponent() const;
 	
 	UFUNCTION(BlueprintCallable, Category = "Input")
 	void DoStartSprint();
@@ -61,11 +67,10 @@ public: //Component Related
 	UFUNCTION(BlueprintCallable, Category="Input")
 	void DoEndSprint();
 
+	void StartShooting();
+
 protected:
-
-#pragma region INPUT_ACTIONS 
-
-	/** Fire weapon input action */
+	
 	UPROPERTY(EditAnywhere, Category ="Input")
 	UInputAction* SprintAction;
 
@@ -75,11 +80,15 @@ protected:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	UInputAction* ToggleTorchAction;
 
-#pragma endregion INPUT_ACTIONS
+	UPROPERTY(EditAnywhere, Category ="Input")
+	UInputAction* ShootAction;
 	
 	void DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color);
 
-protected: 
+protected:
+	UPROPERTY(EditDefaultsOnly, Category = "Gameplay|Projectile")
+	TSubclassOf<class AShooter> ProjectileClass;
+	
 	//Player Health bar reduces based on incoming damage
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 	void ToggleDamage();

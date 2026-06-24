@@ -9,6 +9,8 @@
 #include "GameFramework/DamageType.h"
 #include "Engine/EngineTypes.h"
 #include "Components/UHealthComponent.h"
+#include "Components/AShooter.h"
+#include "Components/UShooterComponent.h"
 #include "Components/UTorchComponent.h"
 
 AHorrorCharacter::AHorrorCharacter()
@@ -17,10 +19,15 @@ AHorrorCharacter::AHorrorCharacter()
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	SprintComponent = CreateDefaultSubobject<USprintComponent>(TEXT("SprintComponent"));
 	TorchComponent = CreateDefaultSubobject<UTorchComponent>(TEXT("TorchComponent"));
+	ShooterComponent = CreateDefaultSubobject<UShooterComponent>(TEXT("ShooterComponent"));
 	
 	SpotLight = CreateDefaultSubobject<USpotLightComponent>(TEXT("SpotLight"));
 	SpotLight->SetupAttachment(GetFirstPersonCameraComponent());
+
+	//Initialize projectile class
+	ProjectileClass = AShooter::StaticClass();
 }
+
 
 void AHorrorCharacter::BeginPlay()
 {
@@ -41,15 +48,19 @@ void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		// Set up action bindings
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 		{
-			// Sprinting
+			//Sprinting
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHorrorCharacter::DoStartSprint);
 			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHorrorCharacter::DoEndSprint);
 
 			//Toggle Damage Taken
 			EnhancedInputComponent->BindAction(ToggleDamageAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleDamage);
 
-			//toggle torch
+			//Toggle torch
 			EnhancedInputComponent->BindAction(ToggleTorchAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleTorch);
+
+			//Shoot weapon
+			EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AHorrorCharacter::StartShooting);
+			// EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &AHorrorCharacter::);
 		}
 	}
 }
@@ -108,13 +119,16 @@ UTorchComponent* AHorrorCharacter::GetTorchComponent() const
 {
 	return TorchComponent;
 }
+UShooterComponent* AHorrorCharacter::GetShooterComponent() const
+{
+	return ShooterComponent;
+}
+
 
 void AHorrorCharacter::DoStartSprint()
 {
 	if (SprintComponent)
-	{
-		SprintComponent->DoStartSprint(); // or whatever your component function is
-	}
+		SprintComponent->DoStartSprint(); 
 }
 void AHorrorCharacter::DoEndSprint()
 {
@@ -126,13 +140,13 @@ void AHorrorCharacter::DoEndSprint()
 void AHorrorCharacter::ToggleTorch()
 {
 	UE_LOG(LogTemp, Warning,
-TEXT("NAME=%s ROLE=%d REMOTE=%d AUTH=%d LOCALCTRL=%d NETMODE=%d"),
-*GetName(),
-(int32)GetLocalRole(),
-(int32)GetRemoteRole(),
-HasAuthority(),
-IsLocallyControlled(),
-(int32)GetNetMode());
+	TEXT("NAME=%s ROLE=%d REMOTE=%d AUTH=%d LOCALCTRL=%d NETMODE=%d"),
+	*GetName(),
+	(int32)GetLocalRole(),
+	(int32)GetRemoteRole(),
+	HasAuthority(),
+	IsLocallyControlled(),
+	(int32)GetNetMode());
 
 	if (!IsLocallyControlled())
 	{
@@ -145,5 +159,17 @@ IsLocallyControlled(),
 	else
 		UE_LOG(LogTemp, Error, TEXT("TorchComponent is NULL"));
 }
+
+void AHorrorCharacter::StartShooting()
+{
+	UE_LOG(LogTemp, Warning, TEXT("SHOOTING"));
+ 
+	if (ShooterComponent)
+		ShooterComponent->StartFire();
+	else
+		UE_LOG(LogTemp, Warning, TEXT("null shooter component"));
+}
+
+
 
 

@@ -34,10 +34,9 @@ void UTorchComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutL
 
 void UTorchComponent::ToggleTorch()
 {
-	UE_LOG(LogTemp, Warning, TEXT("CLIENT CLICK"));
+	// UE_LOG(LogTemp, Warning, TEXT("CLIENT CLICK"));
 
 	ServerToggleTorch();
-	
 }
 
 void UTorchComponent::ToggleTorchState()
@@ -53,7 +52,7 @@ void UTorchComponent::ApplyTorchState()
 	// 	   SpotLight ? TEXT("VALID") : TEXT("NULL"),
 	// 	   bTorchOn);
 
-	UE_LOG(LogTemp, Warning, TEXT("APPLY ENTRY %s"), *GetOwner()->GetName());
+	// UE_LOG(LogTemp, Warning, TEXT("APPLY ENTRY %s"), *GetOwner()->GetName());
 
 	if (!SpotLight)
 	{
@@ -63,38 +62,33 @@ void UTorchComponent::ApplyTorchState()
 	
 	SpotLight->SetVisibility(bTorchOn);
 	
-	UE_LOG(LogTemp, Warning,
-	TEXT("%s VisibleAfter=%d"),
-	*GetOwner()->GetName(),
-	SpotLight->IsVisible());
-	
-	UE_LOG(LogTemp, Warning,
-		TEXT("ApplyTorchState: %s -> %d"),
-		*GetOwner()->GetName(),
-		bTorchOn);
+	// UE_LOG(LogTemp, Warning,
+	// 	TEXT("ApplyTorchState: %s -> %d"),
+	// 	*GetOwner()->GetName(),
+	// 	bTorchOn);
 }
-
-
 
 void UTorchComponent::OnRep_TorchState()
 {
-	UE_LOG(LogTemp, Warning,
-		TEXT("OnRep_TorchState: %s -> %d, LocalRole=%d"),
-		*GetOwner()->GetName(),
-		bTorchOn,
-		(int32)GetOwner()->GetLocalRole());;
+	// UE_LOG(LogTemp, Warning,
+	// 	TEXT("OnRep_TorchState: %s -> %d, LocalRole=%d"),
+	// 	*GetOwner()->GetName(),
+	// 	bTorchOn,
+	// 	(int32)GetOwner()->GetLocalRole());;
 	
 	ApplyTorchState();
 }
 
 void UTorchComponent::ServerToggleTorch_Implementation()
 {
-	UE_LOG(LogTemp, Warning, TEXT("SERVER RPC FIRED"));
+	// UE_LOG(LogTemp, Warning, TEXT("SERVER RPC FIRED"));
 
 	ToggleTorchState();
 	ApplyTorchState();
 
-	UE_LOG(LogTemp, Warning, TEXT("SERVER VALUE AFTER TOGGLE: %d"), bTorchOn);
+	// UE_LOG(LogTemp, Warning, TEXT("SERVER VALUE AFTER TOGGLE: %d"), bTorchOn);
 }
+
+
 
 
