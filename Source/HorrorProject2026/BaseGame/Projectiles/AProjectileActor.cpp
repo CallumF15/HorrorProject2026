@@ -1,4 +1,4 @@
-﻿#include "AShooter.h"
+﻿#include "AProjectileActor.h"
 #include "Components/SphereComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "GameFramework/ProjectileMovementComponent.h"
@@ -7,7 +7,7 @@
 #include "Kismet/GameplayStatics.h"
 #include "UObject/ConstructorHelpers.h"
 
-AShooter::AShooter()
+AProjectileActor::AProjectileActor()
 {
 	bReplicates = true;
 
@@ -20,7 +20,7 @@ AShooter::AShooter()
 	//Registering the Projectile Impact function on a Hit event.
 	if (GetLocalRole() == ROLE_Authority)
 	{
-		SphereComponent->OnComponentHit.AddDynamic(this, &AShooter::OnProjectileImpact);
+		SphereComponent->OnComponentHit.AddDynamic(this, &AProjectileActor::OnProjectileImpact);
 	}
 
 	//Definition for the Mesh that will serve as your visual representation.
@@ -76,24 +76,24 @@ AShooter::AShooter()
 	Damage = 10.0f;
 }
 
-void AShooter::BeginPlay()
+void AProjectileActor::BeginPlay()
 {
 	Super::BeginPlay();
 }
 
-void AShooter::Tick(float DeltaTime)
+void AProjectileActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
 
-void AShooter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AProjectileActor::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 
 	// DOREPLIFETIME(UShooterComponent, YourReplicatedVariable);
 }
 
-void AShooter::Destroyed()
+void AProjectileActor::Destroyed()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Destroyed"));
 	
@@ -128,7 +128,7 @@ void AShooter::Destroyed()
 
 
 
-void AShooter::OnProjectileImpact(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
+void AProjectileActor::OnProjectileImpact(UPrimitiveComponent* HitComponent, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit)
 {
 	if (OtherActor)
 	{

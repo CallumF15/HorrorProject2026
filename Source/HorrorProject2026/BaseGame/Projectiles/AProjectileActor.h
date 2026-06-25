@@ -1,9 +1,9 @@
 ﻿#pragma once
 
-#include "AShooter.generated.h"
+#include "AProjectileActor.generated.h"
 
 UCLASS(ClassGroup=(Combat), meta=(BlueprintSpawnableComponent))
-class AShooter : public AActor
+class AProjectileActor : public AActor
 {
 	GENERATED_BODY()
 
@@ -11,7 +11,7 @@ class AShooter : public AActor
 	TSubclassOf<AActor> ExplosionBP;
 
 public:
-	AShooter();
+	AProjectileActor();
 	virtual void Tick(float DeltaTime) override;	// Called every frame
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 

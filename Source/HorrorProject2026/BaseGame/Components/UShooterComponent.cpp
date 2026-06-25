@@ -1,6 +1,6 @@
 ﻿#include "UShooterComponent.h"
 
-#include "AShooter.h"
+#include "../Projectiles/AProjectileActor.h"
 
 UShooterComponent::UShooterComponent()
 {
@@ -8,7 +8,7 @@ UShooterComponent::UShooterComponent()
 	UE_LOG(LogTemp, Warning, TEXT("shooter component constructor"));
 	
 	//Initialize projectile class
-	ProjectileClass = AShooter::StaticClass();
+	ProjectileClass = AProjectileActor::StaticClass();
 	FireRate = 0.25f; 	//Initialize fire rate
 	bIsFiringWeapon = false;
 }

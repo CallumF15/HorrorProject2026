@@ -4,23 +4,23 @@
 
 #include "CoreMinimal.h"
 #include "Blueprint/UserWidget.h"
-#include "HorrorUI.generated.h"
+#include "HunterUI.generated.h"
 
-class AHorrorCharacter;
+class AHunterCharacter;
 
 /**
  *  Simple UI for a first person horror game
  *  Manages character sprint meter display
  */
 UCLASS(abstract)
-class HORRORPROJECT2026_API UHorrorUI : public UUserWidget
+class HORRORPROJECT2026_API UHunterUI : public UUserWidget
 {
 	GENERATED_BODY()
 	
 public:
 
 	/** Sets up delegate listeners for the passed character */
-	void SetupCharacter(AHorrorCharacter* HorrorCharacter);
+	void SetupCharacter(AHunterCharacter* HorrorCharacter);
 
 	/** Called when the character's sprint meter is updated */
 	UFUNCTION()

@@ -7,7 +7,7 @@
 #include "HorrorPlayerController.generated.h"
 
 class UInputMappingContext;
-class UHorrorUI;
+class UHunterUI;
 
 /**
  *  Player Controller for a first person horror game
@@ -23,11 +23,11 @@ protected:
 
 	/** Type of UI widget to spawn */
 	UPROPERTY(EditAnywhere, Category="Horror|UI")
-	TSubclassOf<UHorrorUI> HorrorUIClass;
+	TSubclassOf<UHunterUI> HorrorUIClass;
 
 	/** Pointer to the UI widget */
 	UPROPERTY()
-	TObjectPtr<UHorrorUI> HorrorUI;
+	TObjectPtr<UHunterUI> HorrorUI;
 
 public:
 

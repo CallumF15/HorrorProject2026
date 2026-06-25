@@ -2,11 +2,11 @@
 
 #include "CoreMinimal.h"
 #include "HorrorProject2026Character.h"
-#include "Components/UHealthComponent.h"
-#include "Components/USprintComponent.h"
-#include "Components/UTorchComponent.h"
+#include "../Components/UHealthComponent.h"
+#include "../Components/USprintComponent.h"
+#include "../Components/UTorchComponent.h"
 #include "Components/WidgetComponent.h"
-#include "HorrorCharacter.generated.h"
+#include "HunterCharacter.generated.h"
 
 class USpotLightComponent;
 
@@ -17,7 +17,7 @@ class UTorchComponent;
 class UShooterComponent;
 
 UCLASS(abstract)
-class HORRORPROJECT2026_API AHorrorCharacter : public AHorrorProject2026Character
+class HORRORPROJECT2026_API AHunterCharacter : public AHorrorProject2026Character
 {
 	GENERATED_BODY()
 
@@ -26,7 +26,7 @@ class HORRORPROJECT2026_API AHorrorCharacter : public AHorrorProject2026Characte
 
 protected:
 	
-	AHorrorCharacter();
+	AHunterCharacter();
 
 	//virtual void Tick(float DeltaTime) override; //only needed if we want to do tick-based updates instead of timer-based or debugging
 
@@ -87,7 +87,7 @@ protected:
 
 protected:
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay|Projectile")
-	TSubclassOf<class AShooter> ProjectileClass;
+	TSubclassOf<class AProjectileActor> ProjectileClass;
 	
 	//Player Health bar reduces based on incoming damage
 	virtual float TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;

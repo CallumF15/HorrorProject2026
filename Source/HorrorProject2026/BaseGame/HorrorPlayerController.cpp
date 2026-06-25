@@ -1,7 +1,7 @@
 // Copyright Epic Games, Inc. All Rights Reserved.
 
 
-#include "Variant_Horror/HorrorPlayerController.h"
+#include "BaseGame/HorrorPlayerController.h"
 #include "EnhancedInputSubsystems.h"
 #include "Engine/LocalPlayer.h"
 #include "InputMappingContext.h"
@@ -10,8 +10,8 @@
 //network 
 #include "Net/UnrealNetwork.h"
 
-#include "HorrorCharacter.h"
-#include "HorrorUI.h"
+#include "Characters/HunterCharacter.h"
+#include "./UI/HunterUI.h"
 #include "HorrorProject2026.h"
 #include "Widgets/Input/SVirtualJoystick.h"
 
@@ -29,13 +29,13 @@ void AHorrorPlayerController::BeginPlay()
 
 	if (!HorrorUI && HorrorUIClass)
 	{
-		HorrorUI = CreateWidget<UHorrorUI>(this, HorrorUIClass);
+		HorrorUI = CreateWidget<UHunterUI>(this, HorrorUIClass);
 		HorrorUI->AddToViewport(0);
 
 
 		if (APawn* MyPawn = GetPawn())
 		{
-			if (AHorrorCharacter* HorrorChar = Cast<AHorrorCharacter>(MyPawn))
+			if (AHunterCharacter* HorrorChar = Cast<AHunterCharacter>(MyPawn))
 			{
 				HorrorUI->SetupCharacter(HorrorChar);
 			}
@@ -49,7 +49,7 @@ void AHorrorPlayerController::OnPossess(APawn* aPawn)
 
 	if (!IsLocalPlayerController() || !HorrorUI) return;
 
-	if (AHorrorCharacter* HorrorCharacter = Cast<AHorrorCharacter>(aPawn))
+	if (AHunterCharacter* HorrorCharacter = Cast<AHunterCharacter>(aPawn))
 	{
 		HorrorUI->SetupCharacter(HorrorCharacter);
 		UE_LOG(LogHorrorProject2026, Warning, TEXT("HorrorUI SetupCharacter called"));

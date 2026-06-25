@@ -1,4 +1,4 @@
-﻿#include "Variant_Horror/HorrorCharacter.h"
+﻿#include "BaseGame/Characters/HunterCharacter.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Camera/CameraComponent.h"
@@ -8,12 +8,12 @@
 #include "InputAction.h"
 #include "GameFramework/DamageType.h"
 #include "Engine/EngineTypes.h"
-#include "Components/UHealthComponent.h"
-#include "Components/AShooter.h"
-#include "Components/UShooterComponent.h"
-#include "Components/UTorchComponent.h"
+#include "../Components/UHealthComponent.h"
+#include "../Projectiles/AProjectileActor.h"
+#include "../Components/UShooterComponent.h"
+#include "../Components/UTorchComponent.h"
 
-AHorrorCharacter::AHorrorCharacter()
+AHunterCharacter::AHunterCharacter()
 {
 	// create health/sprint/torch component
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
@@ -25,23 +25,23 @@ AHorrorCharacter::AHorrorCharacter()
 	SpotLight->SetupAttachment(GetFirstPersonCameraComponent());
 
 	//Initialize projectile class
-	ProjectileClass = AShooter::StaticClass();
+	ProjectileClass = AProjectileActor::StaticClass();
 }
 
 
-void AHorrorCharacter::BeginPlay()
+void AHunterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
 	// TorchComponent->SetSpotLight(SpotLight);
 }
 
-void AHorrorCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
+void AHunterCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 }
 
-void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AHunterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	{
@@ -49,28 +49,28 @@ void AHorrorCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 		{
 			//Sprinting
-			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHorrorCharacter::DoStartSprint);
-			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHorrorCharacter::DoEndSprint);
+			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHunterCharacter::DoStartSprint);
+			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHunterCharacter::DoEndSprint);
 
 			//Toggle Damage Taken
-			EnhancedInputComponent->BindAction(ToggleDamageAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleDamage);
+			EnhancedInputComponent->BindAction(ToggleDamageAction, ETriggerEvent::Started, this, &AHunterCharacter::ToggleDamage);
 
 			//Toggle torch
-			EnhancedInputComponent->BindAction(ToggleTorchAction, ETriggerEvent::Started, this, &AHorrorCharacter::ToggleTorch);
+			EnhancedInputComponent->BindAction(ToggleTorchAction, ETriggerEvent::Started, this, &AHunterCharacter::ToggleTorch);
 
 			//Shoot weapon
-			EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AHorrorCharacter::StartShooting);
+			EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AHunterCharacter::StartShooting);
 			// EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &AHorrorCharacter::);
 		}
 	}
 }
 
-void AHorrorCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AHunterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
-float AHorrorCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+float AHunterCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (HealthComponent)
 	{
@@ -79,7 +79,7 @@ float AHorrorCharacter::TakeDamage(float DamageAmount, const FDamageEvent& Damag
 
 	return DamageAmount;
 }
-void AHorrorCharacter::ToggleDamage()
+void AHunterCharacter::ToggleDamage()
 {
 	if (HealthComponent)
 		HealthComponent->ToggleDamage();
@@ -88,7 +88,7 @@ void AHorrorCharacter::ToggleDamage()
 /// <summary>
 /// Displays a debug string above the character with the given label and value, offset by the specified amount. Useful for visualizing stats like health or stamina during development.
 /// </summary>
-void AHorrorCharacter::DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color)
+void AHunterCharacter::DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color)
 {
 	if (!GetWorld()) return;
 
@@ -107,37 +107,37 @@ void AHorrorCharacter::DebugDrawStats(FString Label, float Value, FVector Offset
 }
 
 
-UHealthComponent* AHorrorCharacter::GetHealthComponent() const
+UHealthComponent* AHunterCharacter::GetHealthComponent() const
 {
 	return HealthComponent;
 }
-USprintComponent* AHorrorCharacter::GetSprintComponent() const
+USprintComponent* AHunterCharacter::GetSprintComponent() const
 {
 	return SprintComponent;
 }
-UTorchComponent* AHorrorCharacter::GetTorchComponent() const
+UTorchComponent* AHunterCharacter::GetTorchComponent() const
 {
 	return TorchComponent;
 }
-UShooterComponent* AHorrorCharacter::GetShooterComponent() const
+UShooterComponent* AHunterCharacter::GetShooterComponent() const
 {
 	return ShooterComponent;
 }
 
 
-void AHorrorCharacter::DoStartSprint()
+void AHunterCharacter::DoStartSprint()
 {
 	if (SprintComponent)
 		SprintComponent->DoStartSprint(); 
 }
-void AHorrorCharacter::DoEndSprint()
+void AHunterCharacter::DoEndSprint()
 {
 	if (SprintComponent)
 	{
 		SprintComponent->DoEndSprint(); // or whatever your component function is
 	}
 }
-void AHorrorCharacter::ToggleTorch()
+void AHunterCharacter::ToggleTorch()
 {
 	UE_LOG(LogTemp, Warning,
 	TEXT("NAME=%s ROLE=%d REMOTE=%d AUTH=%d LOCALCTRL=%d NETMODE=%d"),
@@ -160,7 +160,7 @@ void AHorrorCharacter::ToggleTorch()
 		UE_LOG(LogTemp, Error, TEXT("TorchComponent is NULL"));
 }
 
-void AHorrorCharacter::StartShooting()
+void AHunterCharacter::StartShooting()
 {
 	UE_LOG(LogTemp, Warning, TEXT("SHOOTING"));
  

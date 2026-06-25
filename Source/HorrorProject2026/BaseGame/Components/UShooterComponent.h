@@ -23,7 +23,7 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay|Projectile")
-	TSubclassOf<class AShooter> ProjectileClass;
+	TSubclassOf<class AProjectileActor> ProjectileClass;
 	 
 	/** Delay between shots in seconds. Used to control fire rate for your test projectile, but also to prevent an overflow of server functions from binding SpawnProjectile directly to input.*/
 	UPROPERTY(EditDefaultsOnly, Category = "Gameplay")
