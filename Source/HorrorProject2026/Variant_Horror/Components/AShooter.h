@@ -8,6 +8,7 @@ class AShooter : public AActor
 	GENERATED_BODY()
 
 	TSubclassOf<AActor> ProjectileClass;
+	TSubclassOf<AActor> ExplosionBP;
 
 public:
 	AShooter();
@@ -44,6 +45,8 @@ public:
 	float Damage;
 
 
+	void Explode();
+	
 protected:
 	virtual void Destroyed() override;
 
