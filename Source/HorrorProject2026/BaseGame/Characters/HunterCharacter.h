@@ -5,7 +5,8 @@
 #include "../Components/UHealthComponent.h"
 #include "../Components/USprintComponent.h"
 #include "../Components/UTorchComponent.h"
-#include "AHunterCharacter.generated.h"
+#include "Components/WidgetComponent.h"
+#include "HunterCharacter.generated.h"
 
 class USpotLightComponent;
 
@@ -16,15 +17,16 @@ class UTorchComponent;
 class UShooterComponent;
 
 UCLASS(abstract)
-class HORRORPROJECT2026_API AAHunterCharacter : public AHorrorProject2026Character
+class HORRORPROJECT2026_API AHunterCharacter : public AHorrorProject2026Character
 {
 	GENERATED_BODY()
 
-
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
+	USpotLightComponent* SpotLight;
 
 protected:
 	
-	AAHunterCharacter();
+	AHunterCharacter();
 
 	//virtual void Tick(float DeltaTime) override; //only needed if we want to do tick-based updates instead of timer-based or debugging
 
@@ -40,9 +42,6 @@ protected:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
 public: //Component Related
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components", meta = (AllowPrivateAccess = "true"))
-	USpotLightComponent* SpotLight;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category="Components")
 	UHealthComponent* HealthComponent;

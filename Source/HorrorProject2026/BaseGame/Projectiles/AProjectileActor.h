@@ -10,10 +10,6 @@ class AProjectileActor : public AActor
 	TSubclassOf<AActor> ProjectileClass;
 	TSubclassOf<AActor> ExplosionBP;
 
-	UPROPERTY()
-	UMaterialInterface* ExplosionMaterialRef;
-
-	
 public:
 	AProjectileActor();
 	virtual void Tick(float DeltaTime) override;	// Called every frame

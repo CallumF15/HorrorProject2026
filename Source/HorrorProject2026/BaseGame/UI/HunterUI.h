@@ -6,7 +6,7 @@
 #include "Blueprint/UserWidget.h"
 #include "HunterUI.generated.h"
 
-class AAHunterCharacter;
+class AHunterCharacter;
 
 /**
  *  Simple UI for a first person horror game
@@ -20,7 +20,7 @@ class HORRORPROJECT2026_API UHunterUI : public UUserWidget
 public:
 
 	/** Sets up delegate listeners for the passed character */
-	void SetupCharacter(AAHunterCharacter* HorrorCharacter);
+	void SetupCharacter(AHunterCharacter* HorrorCharacter);
 
 	/** Called when the character's sprint meter is updated */
 	UFUNCTION()

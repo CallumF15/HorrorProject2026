@@ -10,7 +10,7 @@
 //network 
 #include "Net/UnrealNetwork.h"
 
-#include "Characters/AHunterCharacter.h"
+#include "Characters/HunterCharacter.h"
 #include "./UI/HunterUI.h"
 #include "HorrorProject2026.h"
 #include "Widgets/Input/SVirtualJoystick.h"
@@ -35,7 +35,7 @@ void AHorrorPlayerController::BeginPlay()
 
 		if (APawn* MyPawn = GetPawn())
 		{
-			if (AAHunterCharacter* HorrorChar = Cast<AAHunterCharacter>(MyPawn))
+			if (AHunterCharacter* HorrorChar = Cast<AHunterCharacter>(MyPawn))
 			{
 				HorrorUI->SetupCharacter(HorrorChar);
 			}
@@ -49,7 +49,7 @@ void AHorrorPlayerController::OnPossess(APawn* aPawn)
 
 	if (!IsLocalPlayerController() || !HorrorUI) return;
 
-	if (AAHunterCharacter* HorrorCharacter = Cast<AAHunterCharacter>(aPawn))
+	if (AHunterCharacter* HorrorCharacter = Cast<AHunterCharacter>(aPawn))
 	{
 		HorrorUI->SetupCharacter(HorrorCharacter);
 		UE_LOG(LogHorrorProject2026, Warning, TEXT("HorrorUI SetupCharacter called"));

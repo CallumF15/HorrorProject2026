@@ -18,17 +18,15 @@ public class HorrorProject2026 : ModuleRules
 			"StateTreeModule",
 			"GameplayStateTreeModule",
 			"UMG",
-			"Slate",
-			"GeometryCore",
-			"GeometryScriptingCore"
+			"Slate"
 		});
 
-		PrivateDependencyModuleNames.AddRange(new string[] { "GeometryFramework" });
+		PrivateDependencyModuleNames.AddRange(new string[] { });
 
 		PublicIncludePaths.AddRange(new string[] {
 			"HorrorProject2026",
-			"HorrorProject2026/BaseGame",
-			"HorrorProject2026/BaseGame/UI",
+			"HorrorProject2026/Variant_Horror",
+			"HorrorProject2026/Variant_Horror/UI",
 			"HorrorProject2026/Variant_Shooter",
 			"HorrorProject2026/Variant_Shooter/AI",
 			"HorrorProject2026/Variant_Shooter/UI",
