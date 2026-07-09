@@ -72,3 +72,12 @@ Plugins/**/Intermediate/*
 
 # Cache files for the editor to use
 DerivedDataCache/*
+
+# UE thirdperson sample project
+**/TP_ThirdPerson/
+Content/__ExternalActors__
+Content/__ExternalObjects__
+Content/Variant_Combat
+Content/TP_ThirdPerson
+Content/ThirdPerson
+Content/Variant_SideScrolling

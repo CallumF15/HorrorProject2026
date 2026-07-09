@@ -34,7 +34,7 @@ AProjectileActor::AProjectileActor()
 		UE_LOG(LogTemp, Warning, TEXT("Mesh loaded successfully"));
 		StaticMesh->SetStaticMesh(DefaultMesh.Object);
 		StaticMesh->SetRelativeLocation(FVector(0.0f, 0.0f, -37.5f));
-		StaticMesh->SetRelativeRotation(FRotator(0.f, -90.f, 0.f)); //if mesh is changed, remember mightz need to change -90 
+		StaticMesh->SetRelativeRotation(FRotator(0.f, -90.f, 0.f)); //if mesh is changed, remember -90 Yaw may need changed
 		StaticMesh->SetRelativeScale3D(FVector(0.75f, 0.75f, 0.75f));
 	}
 	else
@@ -42,27 +42,25 @@ AProjectileActor::AProjectileActor()
 		UE_LOG(LogTemp, Error, TEXT("Mesh FAILED to load"));
 	}
 
-	// static ConstructorHelpers::FObjectFinder<UParticleSystem> DefaultExplosionEffect(
-	// 	TEXT("/Game/Variant_Shooter/Blueprints/Pickups/Projectiles/Materials/M_Explosion.M_Explosion")
-	// 	);
-	//
-	// if (DefaultExplosionEffect.Succeeded())
-	// {
-	// 	ExplosionEffect = DefaultExplosionEffect.Object;
-	// }
-	// else
-	// {
-	// 	UE_LOG(LogTemp, Error, TEXT("UParticleSystem failed"));
-	// }
-
-	static ConstructorHelpers::FClassFinder<AActor> ExplosionClass(
-	TEXT("/Game/Variant_Shooter/Blueprints/Pickups/Projectiles/Materials/M_Explosion.M_Explosion")
-);
-
-	if (ExplosionClass.Succeeded())
+	static ConstructorHelpers::FObjectFinder<UParticleSystem> DefaultExplosionEffect(TEXT("../Game/Variant_Shooter/Blueprints/Pickups/Projectiles/Materials/M_Explosion.M_Explosion"));
+	//   "/Blueprints/Pickups/Projectiles/Materials/M_Explosion.M_Explosion"
+	
+	if (DefaultExplosionEffect.Succeeded())
 	{
-		ExplosionBP = ExplosionClass.Class;
+		ExplosionEffect = DefaultExplosionEffect.Object;
 	}
+	else
+	{
+		UE_LOG(LogTemp, Error, TEXT("UParticleSystem failed"));
+	}
+
+	
+	// static ConstructorHelpers::FClassFinder<AActor> ExplosionClass(TEXT("/Game/Variant_Shooter/Blueprints/Pickups/Projectiles/BP_Explosion"));
+	//
+	// if (ExplosionClass.Succeeded())
+	// {
+	// 	ExplosionBP = ExplosionClass.Class;
+	// }
 
 	//Definition for the Projectile Movement Component.
 	ProjectileMovementComponent = CreateDefaultSubobject<UProjectileMovementComponent>(TEXT("ProjectileMovement"));
@@ -97,33 +95,24 @@ void AProjectileActor::Destroyed()
 {
 	UE_LOG(LogTemp, Warning, TEXT("Destroyed"));
 	
-	// if (ExplosionEffect)
-	// {
-	// 	UE_LOG(LogTemp, Warning, TEXT("World and Explosion"));
-	// 	UGameplayStatics::SpawnEmitterAtLocation(
-	// 		this,
-	// 		ExplosionEffect,
-	// 		GetActorLocation(),
-	// 		FRotator::ZeroRotator,
-	// 		true,
-	// 		EPSCPoolMethod::AutoRelease
-	// 	);
-	// }else
-	// {
-	// 	UE_LOG(LogTemp, Error, TEXT("No World and Explosion"));
-	// }
-	
-	// FVector spawnLocation = GetActorLocation();
-	// UGameplayStatics::SpawnEmitterAtLocation(this, ExplosionEffect, spawnLocation, FRotator::ZeroRotator, true, EPSCPoolMethod::AutoRelease);
-
-	if (ExplosionBP)
+	if (ExplosionEffect)
 	{
-		GetWorld()->SpawnActor<AActor>(
-			ExplosionBP,
+		UE_LOG(LogTemp, Warning, TEXT("World and Explosion"));
+		UGameplayStatics::SpawnEmitterAtLocation(
+			this,
+			ExplosionEffect,
 			GetActorLocation(),
-			FRotator::ZeroRotator
+			FRotator::ZeroRotator,
+			true,
+			EPSCPoolMethod::AutoRelease
 		);
+	}else
+	{
+		UE_LOG(LogTemp, Error, TEXT("No World and Explosion"));
 	}
+	
+	FVector spawnLocation = GetActorLocation();
+	UGameplayStatics::SpawnEmitterAtLocation(this, ExplosionEffect, spawnLocation, FRotator::ZeroRotator, true, EPSCPoolMethod::AutoRelease);
 }
 
 

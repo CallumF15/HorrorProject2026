@@ -2,9 +2,9 @@
 
 
 #include "HunterUI.h"
-#include "../Characters/HunterCharacter.h"
+#include "../Characters/AHunterCharacter.h"
 
-void UHunterUI::SetupCharacter(AHunterCharacter* HorrorCharacter)
+void UHunterUI::SetupCharacter(AAHunterCharacter* HorrorCharacter)
 {
 	UHealthComponent* HealthComp = HorrorCharacter->GetHealthComponent();
 	USprintComponent* SprintComp = HorrorCharacter->GetSprintComponent();

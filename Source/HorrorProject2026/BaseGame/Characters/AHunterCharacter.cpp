@@ -1,19 +1,22 @@
-﻿#include "BaseGame/Characters/HunterCharacter.h"
+﻿#include "BaseGame/Characters/AHunterCharacter.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
 #include "Camera/CameraComponent.h"
 
-
+		/* Inputs */
 #include "EnhancedInputComponent.h"
 #include "InputAction.h"
+
 #include "GameFramework/DamageType.h"
 #include "Engine/EngineTypes.h"
-#include "../Components/UHealthComponent.h"
+		/* Actors */
 #include "../Projectiles/AProjectileActor.h"
+		/* componets */
+#include "../Components/UHealthComponent.h"
 #include "../Components/UShooterComponent.h"
 #include "../Components/UTorchComponent.h"
 
-AHunterCharacter::AHunterCharacter()
+AAHunterCharacter::AAHunterCharacter()
 {
 	// create health/sprint/torch component
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
@@ -29,19 +32,19 @@ AHunterCharacter::AHunterCharacter()
 }
 
 
-void AHunterCharacter::BeginPlay()
+void AAHunterCharacter::BeginPlay()
 {
 	Super::BeginPlay();
 
 	// TorchComponent->SetSpotLight(SpotLight);
 }
 
-void AHunterCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
+void AAHunterCharacter::EndPlay(EEndPlayReason::Type EndPlayReason)
 {
 	Super::EndPlay(EndPlayReason);
 }
 
-void AHunterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
+void AAHunterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
 	Super::SetupPlayerInputComponent(PlayerInputComponent);
 	{
@@ -49,28 +52,28 @@ void AHunterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCom
 		if (UEnhancedInputComponent* EnhancedInputComponent = Cast<UEnhancedInputComponent>(PlayerInputComponent))
 		{
 			//Sprinting
-			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AHunterCharacter::DoStartSprint);
-			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AHunterCharacter::DoEndSprint);
+			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Started, this, &AAHunterCharacter::DoStartSprint);
+			EnhancedInputComponent->BindAction(SprintAction, ETriggerEvent::Completed, this, &AAHunterCharacter::DoEndSprint);
 
 			//Toggle Damage Taken
-			EnhancedInputComponent->BindAction(ToggleDamageAction, ETriggerEvent::Started, this, &AHunterCharacter::ToggleDamage);
+			EnhancedInputComponent->BindAction(ToggleDamageAction, ETriggerEvent::Started, this, &AAHunterCharacter::ToggleDamage);
 
 			//Toggle torch
-			EnhancedInputComponent->BindAction(ToggleTorchAction, ETriggerEvent::Started, this, &AHunterCharacter::ToggleTorch);
+			EnhancedInputComponent->BindAction(ToggleTorchAction, ETriggerEvent::Started, this, &AAHunterCharacter::ToggleTorch);
 
 			//Shoot weapon
-			EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AHunterCharacter::StartShooting);
+			EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Started, this, &AAHunterCharacter::StartShooting);
 			// EnhancedInputComponent->BindAction(ShootAction, ETriggerEvent::Completed, this, &AHorrorCharacter::);
 		}
 	}
 }
 
-void AHunterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
+void AAHunterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
 {
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 }
 
-float AHunterCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
+float AAHunterCharacter::TakeDamage(float DamageAmount, const FDamageEvent& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
 	if (HealthComponent)
 	{
@@ -79,7 +82,7 @@ float AHunterCharacter::TakeDamage(float DamageAmount, const FDamageEvent& Damag
 
 	return DamageAmount;
 }
-void AHunterCharacter::ToggleDamage()
+void AAHunterCharacter::ToggleDamage()
 {
 	if (HealthComponent)
 		HealthComponent->ToggleDamage();
@@ -88,7 +91,7 @@ void AHunterCharacter::ToggleDamage()
 /// <summary>
 /// Displays a debug string above the character with the given label and value, offset by the specified amount. Useful for visualizing stats like health or stamina during development.
 /// </summary>
-void AHunterCharacter::DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color)
+void AAHunterCharacter::DebugDrawStats(FString Label, float Value, FVector Offset, FColor Color)
 {
 	if (!GetWorld()) return;
 
@@ -107,37 +110,37 @@ void AHunterCharacter::DebugDrawStats(FString Label, float Value, FVector Offset
 }
 
 
-UHealthComponent* AHunterCharacter::GetHealthComponent() const
+UHealthComponent* AAHunterCharacter::GetHealthComponent() const
 {
 	return HealthComponent;
 }
-USprintComponent* AHunterCharacter::GetSprintComponent() const
+USprintComponent* AAHunterCharacter::GetSprintComponent() const
 {
 	return SprintComponent;
 }
-UTorchComponent* AHunterCharacter::GetTorchComponent() const
+UTorchComponent* AAHunterCharacter::GetTorchComponent() const
 {
 	return TorchComponent;
 }
-UShooterComponent* AHunterCharacter::GetShooterComponent() const
+UShooterComponent* AAHunterCharacter::GetShooterComponent() const
 {
 	return ShooterComponent;
 }
 
 
-void AHunterCharacter::DoStartSprint()
+void AAHunterCharacter::DoStartSprint()
 {
 	if (SprintComponent)
 		SprintComponent->DoStartSprint(); 
 }
-void AHunterCharacter::DoEndSprint()
+void AAHunterCharacter::DoEndSprint()
 {
 	if (SprintComponent)
 	{
 		SprintComponent->DoEndSprint(); // or whatever your component function is
 	}
 }
-void AHunterCharacter::ToggleTorch()
+void AAHunterCharacter::ToggleTorch()
 {
 	UE_LOG(LogTemp, Warning,
 	TEXT("NAME=%s ROLE=%d REMOTE=%d AUTH=%d LOCALCTRL=%d NETMODE=%d"),
@@ -160,7 +163,7 @@ void AHunterCharacter::ToggleTorch()
 		UE_LOG(LogTemp, Error, TEXT("TorchComponent is NULL"));
 }
 
-void AHunterCharacter::StartShooting()
+void AAHunterCharacter::StartShooting()
 {
 	UE_LOG(LogTemp, Warning, TEXT("SHOOTING"));
  
